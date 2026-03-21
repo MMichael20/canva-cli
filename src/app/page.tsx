@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { TemplateId, IndustryPreset, PosterCompany, INDUSTRY_PRESETS } from "@/lib/types";
+import { TemplateId, IndustryPreset, PosterCompany, PosterData, INDUSTRY_PRESETS } from "@/lib/types";
 import QuickStart from "./components/QuickStart";
 import ChooseLook from "./components/ChooseLook";
 
@@ -18,6 +18,7 @@ export default function HomePage() {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [wizardData, setWizardData] = useState<WizardData | null>(null);
   const [template, setTemplate] = useState<TemplateId>("corporate");
+  const [isAiMode, setIsAiMode] = useState(false);
 
   const handleQuickStartComplete = (data: WizardData) => {
     setWizardData(data);
@@ -27,7 +28,7 @@ export default function HomePage() {
     setStep(2);
   };
 
-  const handleChooseLookContinue = () => {
+  const handleChooseLookContinue = async () => {
     if (!wizardData) return;
 
     // Store wizard data in sessionStorage for the editor
@@ -39,7 +40,36 @@ export default function HomePage() {
       })
     );
 
+    setIsAiMode(!!wizardData.aiMode);
     setStep(3);
+
+    if (wizardData.aiMode) {
+      // AI mode: call the generation API, save full poster data, then redirect
+      try {
+        const res = await fetch("/api/ai-generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            description: wizardData.aiMode.description,
+            format: "square",
+            template,
+            model: wizardData.aiMode.model,
+          }),
+        });
+
+        if (res.ok) {
+          const aiData: PosterData = await res.json();
+          sessionStorage.setItem("wizardPosterData", JSON.stringify(aiData));
+        }
+        // If AI call fails, we still redirect — editor will use wizardData fallback
+      } catch {
+        // Network error — still redirect; editor handles gracefully
+      }
+    } else {
+      // Manual mode: brief intentional delay so the loading screen feels real
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
+
     router.push(`/editor?format=square&template=${template}`);
   };
 
@@ -126,6 +156,37 @@ export default function HomePage() {
           onBack={() => setStep(1)}
           onContinue={handleChooseLookContinue}
         />
+      )}
+      {step === 3 && (
+        <div className="flex flex-col items-center justify-center py-24 gap-8">
+          <div className="glass-card p-12 flex flex-col items-center gap-6 max-w-sm w-full text-center">
+            {/* Animated poster icon */}
+            <div
+              className="w-20 h-20 rounded-2xl flex items-center justify-center"
+              style={{
+                background: "linear-gradient(135deg, #6366f1, #06b6d4)",
+                animation: "pulse 1.5s ease-in-out infinite",
+              }}
+            >
+              <i className="fa-solid fa-file-image text-white text-3xl" />
+            </div>
+
+            {/* Spinner */}
+            <div className="loading-spinner" style={{ width: 32, height: 32 }} />
+
+            {/* Text */}
+            <div className="space-y-2">
+              <p className="text-white font-semibold text-lg">
+                מכינים את הפוסטר שלכם...
+              </p>
+              {isAiMode && (
+                <p className="text-white/50 text-sm">
+                  AI יוצר את התוכן...
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

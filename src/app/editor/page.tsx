@@ -103,6 +103,16 @@ function EditorContent() {
   // Read wizard data from sessionStorage on mount
   useEffect(() => {
     try {
+      // If AI pre-generated a full poster in the wizard loading screen, use it directly
+      const pregenRaw = sessionStorage.getItem("wizardPosterData");
+      if (pregenRaw) {
+        const pregenData = JSON.parse(pregenRaw) as PosterData;
+        setPosterData(pregenData);
+        sessionStorage.removeItem("wizardPosterData");
+        sessionStorage.removeItem("wizardData");
+        return;
+      }
+
       const raw = sessionStorage.getItem("wizardData");
       if (!raw) return;
       const wizard = JSON.parse(raw) as {
