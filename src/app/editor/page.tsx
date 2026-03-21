@@ -89,6 +89,7 @@ function EditorContent() {
   const [improveLoading, setImproveLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [autoTriggerAi, setAutoTriggerAi] = useState(false);
 
   const [posterData, setPosterData] = useState<PosterData>(() => {
     const base: PosterData = {
@@ -110,6 +111,7 @@ function EditorContent() {
         industry?: IndustryPreset;
         format?: PosterFormat;
         template?: TemplateId;
+        aiMode?: { description: string; model: string };
       };
 
       setPosterData((prev) => {
@@ -130,32 +132,97 @@ function EditorContent() {
         if (wizard.industry && INDUSTRY_PRESETS[wizard.industry]) {
           const preset = INDUSTRY_PRESETS[wizard.industry];
           updated.meta = { industry: wizard.industry };
-          // Apply industry defaults only if theme hasn't been customized
-          if (!prev.theme.preset) {
-            const themePreset = THEME_PRESETS[preset.defaultTheme];
-            if (themePreset) {
-              updated.theme = {
-                ...updated.theme,
-                preset: preset.defaultTheme,
-                primary: themePreset.primary,
-                secondary: themePreset.secondary,
-                bgColor: themePreset.bgColor,
-                textColor: themePreset.textColor,
-              };
-            }
+          updated.theme.fontStack = preset.defaultFontStack;
+
+          const themePreset = THEME_PRESETS[preset.defaultTheme];
+          if (themePreset) {
+            updated.theme = {
+              ...updated.theme,
+              preset: preset.defaultTheme,
+              primary: themePreset.primary,
+              secondary: themePreset.secondary,
+              bgColor: themePreset.bgColor,
+              textColor: themePreset.textColor,
+            };
           }
+        }
+
+        // Pre-fill sensible defaults so the poster isn't empty
+        if (updated.details.length === 0) {
+          const industry = wizard.industry || "general";
+          if (industry === "tech") {
+            updated.details = [
+              { icon: "fa-solid fa-location-dot", label: "מיקום", value: "" },
+              { icon: "fa-solid fa-briefcase", label: "ניסיון נדרש", value: "" },
+              { icon: "fa-solid fa-code", label: "טכנולוגיות", value: "" },
+              { icon: "fa-solid fa-clock", label: "היקף משרה", value: "משרה מלאה" },
+            ];
+          } else if (industry === "blue-collar") {
+            updated.details = [
+              { icon: "fa-solid fa-location-dot", label: "מיקום", value: "" },
+              { icon: "fa-solid fa-shekel-sign", label: "שכר", value: "" },
+              { icon: "fa-solid fa-clock", label: "שעות עבודה", value: "" },
+            ];
+            updated.cta = { text: "התקשרו עכשיו!", urgent: true };
+          } else if (industry === "retail") {
+            updated.details = [
+              { icon: "fa-solid fa-location-dot", label: "מיקום", value: "" },
+              { icon: "fa-solid fa-clock", label: "היקף משרה", value: "" },
+              { icon: "fa-solid fa-shekel-sign", label: "שכר", value: "" },
+            ];
+          } else if (industry === "healthcare") {
+            updated.details = [
+              { icon: "fa-solid fa-location-dot", label: "מיקום", value: "" },
+              { icon: "fa-solid fa-id-card", label: "רישיון נדרש", value: "" },
+              { icon: "fa-solid fa-briefcase", label: "ניסיון נדרש", value: "" },
+              { icon: "fa-solid fa-clock", label: "היקף משרה", value: "משרה מלאה" },
+            ];
+          } else {
+            updated.details = [
+              { icon: "fa-solid fa-location-dot", label: "מיקום", value: "" },
+              { icon: "fa-solid fa-briefcase", label: "ניסיון נדרש", value: "" },
+              { icon: "fa-solid fa-clock", label: "היקף משרה", value: "משרה מלאה" },
+            ];
+          }
+        }
+
+        // Default badge if none set
+        if (!updated.badge) {
+          updated.badge = { text: "מגייסים!", style: "default" };
+        }
+
+        // Default CTA if none set
+        if (!updated.cta) {
+          updated.cta = { text: "שלחו קורות חיים" };
         }
 
         return updated;
       });
 
+      // If user chose AI mode in the wizard, auto-trigger AI generation
+      if (wizard.aiMode?.description) {
+        setAiDescription(wizard.aiMode.description);
+        setSelectedModel(wizard.aiMode.model || "gpt-4o-mini");
+        setMode("ai");
+        setAutoTriggerAi(true);
+      }
+
       // Clear wizard data after reading
-      sessionStorage.removeItem("wizard");
+      sessionStorage.removeItem("wizardData");
     } catch {
       // Ignore sessionStorage errors
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Auto-trigger AI generation if wizard set AI mode
+  useEffect(() => {
+    if (autoTriggerAi && aiDescription.trim()) {
+      setAutoTriggerAi(false);
+      handleAiGenerate();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoTriggerAi, aiDescription]);
 
   const updateField = <K extends keyof PosterData>(key: K, value: PosterData[K]) => {
     setPosterData((prev) => ({ ...prev, [key]: value }));
