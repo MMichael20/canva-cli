@@ -20,6 +20,7 @@ export default function LivePreview({ posterData }: LivePreviewProps) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [fullscreen, setFullscreen] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(440);
@@ -56,9 +57,28 @@ export default function LivePreview({ posterData }: LivePreviewProps) {
     }
   }, [previewData]);
 
+  // Close fullscreen on Escape
+  useEffect(() => {
+    if (!fullscreen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setFullscreen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [fullscreen]);
+
   const dims = FORMAT_DIMENSIONS[previewFormat];
   const iframeScale = containerWidth / dims.width;
   const scaledHeight = dims.height * iframeScale;
+
+  // Fullscreen scale: fit poster inside viewport with padding
+  const fullscreenScale =
+    typeof window !== "undefined"
+      ? Math.min(
+          (window.innerWidth - 48) / dims.width,
+          (window.innerHeight - 48) / dims.height
+        )
+      : 1;
 
   // Clean up object URLs on unmount
   useEffect(() => {
@@ -156,7 +176,7 @@ export default function LivePreview({ posterData }: LivePreviewProps) {
         )}
       </div>
 
-      {/* Format tabs */}
+      {/* Format tabs + fullscreen button */}
       <div className="flex gap-2">
         {FORMAT_TABS.map((tab) => (
           <button
@@ -175,6 +195,14 @@ export default function LivePreview({ posterData }: LivePreviewProps) {
             {tab.label}
           </button>
         ))}
+        <button
+          type="button"
+          onClick={() => setFullscreen(true)}
+          title="מסך מלא"
+          className="py-2 px-3 rounded-xl text-sm border border-white/[0.06] text-white/40 hover:border-white/10 hover:text-white/70 transition-all cursor-pointer"
+        >
+          <i className="fa-solid fa-expand" />
+        </button>
       </div>
 
       {/* Action buttons */}
@@ -224,6 +252,55 @@ export default function LivePreview({ posterData }: LivePreviewProps) {
         <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
           <i className="fa-solid fa-triangle-exclamation ml-2" />
           {error}
+        </div>
+      )}
+
+      {/* Fullscreen overlay */}
+      {fullscreen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          style={{ background: "rgba(0,0,0,0.9)" }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setFullscreen(false);
+          }}
+        >
+          {/* Close button — top-left for RTL layout */}
+          <button
+            type="button"
+            onClick={() => setFullscreen(false)}
+            title="סגור"
+            className="absolute top-4 left-4 w-10 h-10 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white transition-all cursor-pointer z-10"
+          >
+            <i className="fa-solid fa-xmark text-lg" />
+          </button>
+
+          {/* Scaled iframe container */}
+          <div
+            style={{
+              width: `${dims.width}px`,
+              height: `${dims.height}px`,
+              transform: `scale(${fullscreenScale})`,
+              transformOrigin: "center center",
+              position: "relative",
+              flexShrink: 0,
+            }}
+          >
+            {liveHtml && (
+              <iframe
+                srcDoc={liveHtml}
+                title="Fullscreen poster preview"
+                sandbox="allow-same-origin"
+                className="border-0 pointer-events-none"
+                style={{
+                  width: `${dims.width}px`,
+                  height: `${dims.height}px`,
+                  position: "absolute",
+                  top: 0,
+                  right: 0,
+                }}
+              />
+            )}
+          </div>
         </div>
       )}
     </div>
