@@ -1,18 +1,29 @@
 "use client";
 
-import { Suspense, useState, useCallback, useMemo, useRef, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   PosterData,
-  PosterDetail,
   PosterFormat,
   TemplateId,
-  FORMAT_DIMENSIONS,
   DEFAULT_POSTER_DATA,
+  INDUSTRY_PRESETS,
+  THEME_PRESETS,
+  IndustryPreset,
 } from "@/lib/types";
-import { generateTemplateHtml } from "@/lib/templates/index";
+import TitleEditor from "../components/sidebar/TitleEditor";
+import CompanyEditor from "../components/sidebar/CompanyEditor";
+import ThemePicker from "../components/sidebar/ThemePicker";
+import DetailsEditor from "../components/sidebar/DetailsEditor";
+import BenefitsEditor from "../components/sidebar/BenefitsEditor";
+import SalaryEditor from "../components/sidebar/SalaryEditor";
+import ContactEditor from "../components/sidebar/ContactEditor";
+import BackgroundEditor from "../components/sidebar/BackgroundEditor";
+import FontPicker from "../components/sidebar/FontPicker";
+import ExportSettings from "../components/sidebar/ExportSettings";
+import LivePreview from "../components/preview/LivePreview";
 
-type InputMode = "manual" | "ai" | "json";
+type InputMode = "manual" | "ai";
 
 const AVAILABLE_MODELS = [
   { id: "gpt-4o-mini", label: "GPT-4o Mini (מהיר וזול)" },
@@ -21,213 +32,193 @@ const AVAILABLE_MODELS = [
   { id: "gpt-4.1", label: "GPT-4.1" },
 ];
 
-const ICON_OPTIONS = [
-  { value: "fa-solid fa-briefcase", label: "תיק עבודה" },
-  { value: "fa-solid fa-code", label: "קוד" },
-  { value: "fa-solid fa-terminal", label: "טרמינל" },
-  { value: "fa-solid fa-location-dot", label: "מיקום" },
-  { value: "fa-solid fa-clock", label: "שעון" },
-  { value: "fa-solid fa-shekel-sign", label: "שכר" },
-  { value: "fa-solid fa-graduation-cap", label: "השכלה" },
-  { value: "fa-solid fa-id-card", label: "תעודה" },
-  { value: "fa-solid fa-truck-fast", label: "משאית" },
-  { value: "fa-solid fa-route", label: "מסלול" },
-  { value: "fa-solid fa-arrows-spin", label: "CI/CD" },
-  { value: "fa-solid fa-users", label: "צוות" },
-  { value: "fa-solid fa-star", label: "כוכב" },
-  { value: "fa-solid fa-heart", label: "לב" },
-  { value: "fa-solid fa-bolt", label: "ברק" },
-  { value: "fa-solid fa-phone", label: "טלפון" },
-  { value: "fa-solid fa-envelope", label: "מייל" },
-  { value: "fa-solid fa-globe", label: "גלובוס" },
-  { value: "fa-solid fa-building", label: "בניין" },
-  { value: "fa-solid fa-car", label: "רכב" },
-  { value: "fa-solid fa-wrench", label: "מפתח ברגים" },
-  { value: "fa-solid fa-hammer", label: "פטיש" },
-  { value: "fa-solid fa-shield-halved", label: "אבטחה" },
-  { value: "fa-solid fa-chart-line", label: "גרף" },
-];
+/* ── Inline Accordion ─────────────────────────────────────────── */
+function Accordion({
+  title,
+  children,
+  defaultOpen = false,
+}: {
+  title: string;
+  children: React.ReactNode;
+  defaultOpen?: boolean;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="glass-card overflow-hidden accordion-section">
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between p-4 cursor-pointer"
+      >
+        <span className="section-title !mb-0">{title}</span>
+        <i
+          className={`fa-solid fa-chevron-down transition-transform ${open ? "rotate-180" : ""}`}
+          style={{ fontSize: 12 }}
+        />
+      </button>
+      {open && <div className="px-4 pb-4 space-y-4">{children}</div>}
+    </div>
+  );
+}
 
-const THEME_PRESETS = [
-  { name: "סגול-תכלת", primary: "#6366F1", secondary: "#06B6D4", bg: "#0B0D17", text: "#F0F0F5" },
-  { name: "כתום-צהוב", primary: "#EA580C", secondary: "#F59E0B", bg: "#0F1419", text: "#F0F0F5" },
-  { name: "ירוק-טורקיז", primary: "#059669", secondary: "#14B8A6", bg: "#0A1210", text: "#F0F0F5" },
-  { name: "ורוד-סגול", primary: "#EC4899", secondary: "#8B5CF6", bg: "#120A14", text: "#F0F0F5" },
-  { name: "אדום-כתום", primary: "#DC2626", secondary: "#F97316", bg: "#140A0A", text: "#F0F0F5" },
-  { name: "כחול-תכלת", primary: "#2563EB", secondary: "#38BDF8", bg: "#0A0F1A", text: "#F0F0F5" },
-];
-
+/* ── Page wrapper (Suspense boundary for useSearchParams) ───── */
 export default function EditorPage() {
   return (
-    <Suspense fallback={<div className="flex items-center justify-center min-h-[60vh]"><div className="loading-spinner" /></div>}>
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="loading-spinner" />
+        </div>
+      }
+    >
       <EditorContent />
     </Suspense>
   );
 }
 
+/* ── Main editor content ─────────────────────────────────────── */
 function EditorContent() {
   const searchParams = useSearchParams();
   const format = (searchParams.get("format") || "story") as PosterFormat;
   const template = (searchParams.get("template") || "corporate") as TemplateId;
 
   const [mode, setMode] = useState<InputMode>("manual");
-  const [loading, setLoading] = useState(false);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [aiDescription, setAiDescription] = useState("");
   const [selectedModel, setSelectedModel] = useState("gpt-4o-mini");
-  const [jsonInput, setJsonInput] = useState("");
+  const [aiLoading, setAiLoading] = useState(false);
+  const [improveLoading, setImproveLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
 
-  const [posterData, setPosterData] = useState<PosterData>({
-    ...DEFAULT_POSTER_DATA,
-    format,
-    template,
-    details: [
-      { icon: "fa-solid fa-briefcase", label: "ניסיון נדרש", value: "3+ שנים" },
-      { icon: "fa-solid fa-code", label: "טכנולוגיות", value: "" },
-      { icon: "fa-solid fa-location-dot", label: "מיקום", value: "" },
-    ],
+  const [posterData, setPosterData] = useState<PosterData>(() => {
+    const base: PosterData = {
+      ...DEFAULT_POSTER_DATA,
+      format,
+      template,
+    };
+    return base;
   });
+
+  // Read wizard data from sessionStorage on mount
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem("wizard");
+      if (!raw) return;
+      const wizard = JSON.parse(raw) as {
+        company?: string;
+        title?: string;
+        industry?: IndustryPreset;
+        format?: PosterFormat;
+        template?: TemplateId;
+      };
+
+      setPosterData((prev) => {
+        const updated = { ...prev };
+
+        if (wizard.company) {
+          updated.company = { ...updated.company, name: wizard.company };
+        }
+        if (wizard.title) {
+          updated.title = { ...updated.title, he: wizard.title };
+        }
+        if (wizard.format) {
+          updated.format = wizard.format;
+        }
+        if (wizard.template) {
+          updated.template = wizard.template;
+        }
+        if (wizard.industry && INDUSTRY_PRESETS[wizard.industry]) {
+          const preset = INDUSTRY_PRESETS[wizard.industry];
+          updated.meta = { industry: wizard.industry };
+          // Apply industry defaults only if theme hasn't been customized
+          if (!prev.theme.preset) {
+            const themePreset = THEME_PRESETS[preset.defaultTheme];
+            if (themePreset) {
+              updated.theme = {
+                ...updated.theme,
+                preset: preset.defaultTheme,
+                primary: themePreset.primary,
+                secondary: themePreset.secondary,
+                bgColor: themePreset.bgColor,
+                textColor: themePreset.textColor,
+              };
+            }
+          }
+        }
+
+        return updated;
+      });
+
+      // Clear wizard data after reading
+      sessionStorage.removeItem("wizard");
+    } catch {
+      // Ignore sessionStorage errors
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const updateField = <K extends keyof PosterData>(key: K, value: PosterData[K]) => {
     setPosterData((prev) => ({ ...prev, [key]: value }));
   };
 
-  const updateDetail = (index: number, field: keyof PosterDetail, value: string) => {
-    setPosterData((prev) => {
-      const details = [...prev.details];
-      details[index] = { ...details[index], [field]: value };
-      return { ...prev, details };
-    });
-  };
-
-  const addDetail = () => {
-    setPosterData((prev) => ({
-      ...prev,
-      details: [
-        ...prev.details,
-        { icon: "fa-solid fa-star", label: "", value: "" },
-      ],
-    }));
-  };
-
-  const removeDetail = (index: number) => {
-    setPosterData((prev) => ({
-      ...prev,
-      details: prev.details.filter((_, i) => i !== index),
-    }));
-  };
-
-  const generate = useCallback(async (data: PosterData) => {
-    setLoading(true);
+  /* ── AI generate ───────────────────────────────────────────── */
+  const handleAiGenerate = async () => {
+    if (!aiDescription.trim()) return;
+    setAiLoading(true);
     setError(null);
-    setPreviewUrl(null);
-
     try {
-      const res = await fetch("/api/generate", {
+      const res = await fetch("/api/ai-generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          description: aiDescription,
+          format: posterData.format,
+          template: posterData.template,
+          model: selectedModel,
+        }),
       });
 
       if (!res.ok) {
         const err = await res.json();
-        throw new Error(err.error || "שגיאה ביצירת הפוסטר");
+        throw new Error(err.error || "שגיאה ביצירת תוכן AI");
       }
 
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      setPreviewUrl(url);
+      const aiData: PosterData = await res.json();
+      setPosterData(aiData);
+      setMode("manual"); // Switch to manual with all fields filled
     } catch (err) {
       setError(err instanceof Error ? err.message : "שגיאה לא צפויה");
     } finally {
-      setLoading(false);
+      setAiLoading(false);
     }
-  }, []);
-
-  const handleGenerate = async () => {
-    if (mode === "json") {
-      try {
-        const parsed = JSON.parse(jsonInput) as PosterData;
-        parsed.format = format;
-        parsed.template = template;
-        await generate(parsed);
-      } catch {
-        setError("JSON לא תקין");
-      }
-      return;
-    }
-
-    if (mode === "ai") {
-      setLoading(true);
-      setError(null);
-      try {
-        const res = await fetch("/api/ai-generate", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            description: aiDescription,
-            format,
-            template,
-            model: selectedModel,
-          }),
-        });
-
-        if (!res.ok) {
-          const err = await res.json();
-          throw new Error(err.error || "שגיאה ביצירת תוכן AI");
-        }
-
-        const aiData: PosterData = await res.json();
-        setPosterData(aiData);
-        await generate(aiData);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "שגיאה לא צפויה");
-        setLoading(false);
-      }
-      return;
-    }
-
-    await generate(posterData);
   };
 
-  const handleDownload = () => {
-    if (!previewUrl) return;
-    const a = document.createElement("a");
-    a.href = previewUrl;
-    a.download = `poster-${format}-${Date.now()}.jpg`;
-    a.click();
-  };
-
-  const dims = FORMAT_DIMENSIONS[format];
-
-  // Live preview: generate HTML from current posterData
-  const liveHtml = useMemo(() => {
+  /* ── AI improve ────────────────────────────────────────────── */
+  const handleAiImprove = async () => {
+    setImproveLoading(true);
+    setError(null);
     try {
-      return generateTemplateHtml(posterData);
-    } catch {
-      return null;
-    }
-  }, [posterData]);
+      const res = await fetch("/api/ai-improve", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(posterData),
+      });
 
-  // Measure the preview container to calculate iframe scale
-  const previewRef = useRef<HTMLDivElement>(null);
-  const [containerWidth, setContainerWidth] = useState(440);
-
-  useEffect(() => {
-    const el = previewRef.current;
-    if (!el) return;
-    const observer = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        setContainerWidth(entry.contentRect.width);
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "שגיאה בשיפור AI");
       }
-    });
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
 
-  const iframeScale = containerWidth / dims.width;
-  const scaledHeight = dims.height * iframeScale;
+      const improved = await res.json();
+      console.log("AI improve response:", improved);
+      if (improved && typeof improved === "object" && improved.format) {
+        setPosterData(improved as PosterData);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "שגיאה לא צפויה");
+    } finally {
+      setImproveLoading(false);
+    }
+  };
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-8">
@@ -235,19 +226,20 @@ function EditorContent() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl font-bold mb-1">עריכת פוסטר</h1>
-          <p className="text-sm text-white/40">
-            {dims.label} • {dims.width}×{dims.height}
-          </p>
         </div>
-        <a href="/" className="text-white/40 hover:text-white/70 transition-colors text-sm">
+        <a
+          href="/"
+          className="text-white/40 hover:text-white/70 transition-colors text-sm"
+        >
           <i className="fa-solid fa-arrow-right ml-1" />
           חזרה
         </a>
       </div>
 
+      {/* Grid: sidebar | preview */}
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_440px] xl:grid-cols-[1fr_500px] gap-10">
-        {/* Left: Form */}
-        <div className="space-y-5">
+        {/* ── Sidebar (scrollable left panel) ──────────────── */}
+        <div className="space-y-5 max-h-[calc(100vh-120px)] lg:overflow-y-auto lg:pr-1 sidebar-scroll">
           {/* Mode tabs */}
           <div className="tab-bar">
             <button
@@ -264,16 +256,9 @@ function EditorContent() {
               <i className="fa-solid fa-wand-magic-sparkles ml-2" />
               AI
             </button>
-            <button
-              className={`tab-item ${mode === "json" ? "active" : ""}`}
-              onClick={() => setMode("json")}
-            >
-              <i className="fa-solid fa-code ml-2" />
-              JSON
-            </button>
           </div>
 
-          {/* AI Mode */}
+          {/* ── AI Mode ───────────────────────────────────── */}
           {mode === "ai" && (
             <div className="glass-card p-6 space-y-4">
               <div className="section-title">תיאור המשרה</div>
@@ -295,279 +280,136 @@ function EditorContent() {
                   </option>
                 ))}
               </select>
+              <button
+                onClick={handleAiGenerate}
+                disabled={aiLoading || !aiDescription.trim()}
+                className="accent-btn w-full flex items-center justify-center gap-3 text-lg py-4"
+              >
+                {aiLoading ? (
+                  <>
+                    <div className="loading-spinner" />
+                    מייצר תוכן...
+                  </>
+                ) : (
+                  <>
+                    <i className="fa-solid fa-wand-magic-sparkles" />
+                    ייצור עם AI
+                  </>
+                )}
+              </button>
             </div>
           )}
 
-          {/* JSON Mode */}
-          {mode === "json" && (
-            <div className="glass-card p-6 space-y-4">
-              <div className="section-title">הדביקו JSON של פוסטר</div>
-              <textarea
-                className="input-field json-editor"
-                placeholder='{"title":{"he":"..."},...}'
-                value={jsonInput}
-                onChange={(e) => setJsonInput(e.target.value)}
-              />
-              <p className="text-xs text-white/30">
-                הפורמט צריך להתאים למבנה PosterData. השדות format ו-template ייקבעו אוטומטית.
-              </p>
-            </div>
-          )}
-
-          {/* Manual Mode */}
+          {/* ── Manual Mode ───────────────────────────────── */}
           {mode === "manual" && (
             <>
-              {/* Theme */}
-              <div className="glass-card p-6">
-                <div className="section-title">ערכת צבעים</div>
-                <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
-                  {THEME_PRESETS.map((t) => (
-                    <button
-                      key={t.name}
-                      onClick={() =>
-                        updateField("theme", {
-                          ...posterData.theme,
-                          primary: t.primary,
-                          secondary: t.secondary,
-                          bgColor: t.bg,
-                          textColor: t.text,
-                        })
-                      }
-                      className={`flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer ${
-                        posterData.theme.primary === t.primary
-                          ? "border-white/20 bg-white/[0.04]"
-                          : "border-white/[0.04] hover:border-white/10"
-                      }`}
-                    >
-                      <div className="flex gap-1">
-                        <div
-                          className="w-5 h-5 rounded-full"
-                          style={{ background: t.primary }}
-                        />
-                        <div
-                          className="w-5 h-5 rounded-full"
-                          style={{ background: t.secondary }}
-                        />
-                      </div>
-                      <span className="text-sm">{t.name}</span>
-                    </button>
-                  ))}
-                </div>
+              {/* Tier 1 — always visible */}
+              <div className="glass-card p-6 space-y-6">
+                <TitleEditor
+                  title={posterData.title}
+                  onChange={(title) => updateField("title", title)}
+                />
+                <CompanyEditor
+                  company={posterData.company}
+                  onChange={(company) => updateField("company", company)}
+                />
+                <ThemePicker
+                  theme={posterData.theme}
+                  onChange={(theme) => updateField("theme", theme)}
+                />
               </div>
 
-              {/* Company */}
-              <div className="glass-card p-6 space-y-4">
-                <div className="section-title">פרטי חברה</div>
-                <div>
-                  <label className="text-xs text-white/30 mb-1 block">שם החברה</label>
-                  <input
-                    className="input-field"
-                    value={posterData.company.name}
-                    onChange={(e) =>
-                      updateField("company", { ...posterData.company, name: e.target.value })
-                    }
-                  />
-                </div>
-              </div>
+              {/* Tier 2 — collapsible accordion sections */}
+              <Accordion title="פרטי המשרה" defaultOpen>
+                <DetailsEditor
+                  details={posterData.details}
+                  onChange={(details) => updateField("details", details)}
+                />
+              </Accordion>
 
-              {/* Badge */}
-              <div className="glass-card p-6 space-y-4">
-                <div className="section-title">תג עליון</div>
-                <div>
-                  <label className="text-xs text-white/30 mb-1 block">טקסט</label>
-                  <input
-                    className="input-field"
-                    value={posterData.badge?.text || ""}
-                    onChange={(e) =>
-                      updateField("badge", {
-                        text: e.target.value,
-                        style: posterData.badge?.style || "default",
-                      })
-                    }
-                  />
-                </div>
-              </div>
+              <Accordion title="הטבות">
+                <BenefitsEditor
+                  benefits={posterData.benefits ?? []}
+                  onChange={(benefits) => updateField("benefits", benefits.length > 0 ? benefits : undefined)}
+                />
+              </Accordion>
 
-              {/* Titles */}
-              <div className="glass-card p-6 space-y-4">
-                <div className="section-title">כותרות</div>
-                <div>
-                  <label className="text-xs text-white/30 mb-1 block">כותרת משנה</label>
-                  <input
-                    className="input-field"
-                    value={posterData.subtitle || ""}
-                    onChange={(e) => updateField("subtitle", e.target.value)}
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-white/30 mb-1 block">שם תפקיד בעברית</label>
-                  <input
-                    className="input-field"
-                    value={posterData.title.he}
-                    onChange={(e) =>
-                      updateField("title", { ...posterData.title, he: e.target.value })
-                    }
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-white/30 mb-1 block">שם תפקיד באנגלית</label>
-                  <input
-                    className="input-field"
-                    style={{ direction: "ltr", textAlign: "left" }}
-                    value={posterData.title.en || ""}
-                    onChange={(e) =>
-                      updateField("title", { ...posterData.title, en: e.target.value })
-                    }
-                  />
-                </div>
-              </div>
+              <Accordion title="שכר">
+                <SalaryEditor
+                  salary={posterData.salary}
+                  onChange={(salary) => updateField("salary", salary)}
+                />
+              </Accordion>
 
-              {/* Background */}
-              <div className="glass-card p-6 space-y-4">
-                <div className="section-title">תמונת רקע</div>
-                <div>
-                  <label className="text-xs text-white/30 mb-1 block">
-                    חיפוש תמונה (Unsplash) או URL ישיר
-                  </label>
-                  <input
-                    className="input-field"
-                    placeholder="לדוגמה: office, technology, truck..."
-                    style={{ direction: "ltr", textAlign: "left" }}
-                    value={posterData.background.imageUrl || posterData.background.imageQuery || ""}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      if (val.startsWith("http")) {
-                        updateField("background", {
-                          ...posterData.background,
-                          type: "image",
-                          imageUrl: val,
-                          imageQuery: undefined,
-                        });
-                      } else {
-                        updateField("background", {
-                          ...posterData.background,
-                          type: val ? "image" : "solid",
-                          imageQuery: val || undefined,
-                          imageUrl: undefined,
-                        });
-                      }
-                    }}
-                  />
-                </div>
-              </div>
+              <Accordion title="איש קשר" defaultOpen>
+                <ContactEditor
+                  contact={posterData.contact}
+                  onChange={(contact) => updateField("contact", contact)}
+                />
+              </Accordion>
 
-              {/* Details */}
-              <div className="glass-card p-6 space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="section-title !mb-0">פרטי המשרה</div>
-                  <button
-                    onClick={addDetail}
-                    className="text-xs text-[#6366f1] hover:text-[#818cf8] transition-colors cursor-pointer"
-                  >
-                    <i className="fa-solid fa-plus ml-1" />
-                    הוסיפו שורה
-                  </button>
-                </div>
-                {posterData.details.map((detail, i) => (
-                  <div key={i} className="relative rounded-xl bg-white/[0.02] border border-white/[0.05] p-4 space-y-3">
-                    {/* Delete button — top left corner */}
-                    <button
-                      onClick={() => removeDetail(i)}
-                      className="absolute top-3 left-3 text-white/15 hover:text-red-400 transition-colors cursor-pointer text-xs"
-                    >
-                      <i className="fa-solid fa-xmark" />
-                    </button>
-                    {/* Row 1: Icon select */}
-                    <div>
-                      <label className="text-xs text-white/30 mb-1 block">אייקון</label>
-                      <select
-                        className="input-field w-full sm:w-48"
-                        value={detail.icon}
-                        onChange={(e) => updateDetail(i, "icon", e.target.value)}
-                      >
-                        {ICON_OPTIONS.map((opt) => (
-                          <option key={opt.value} value={opt.value}>
-                            {opt.label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    {/* Row 2: Label + Value side by side */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className="text-xs text-white/30 mb-1 block">כותרת</label>
-                        <input
-                          className="input-field"
-                          placeholder="לדוגמה: ניסיון נדרש"
-                          value={detail.label}
-                          onChange={(e) => updateDetail(i, "label", e.target.value)}
-                        />
-                      </div>
-                      <div>
-                        <label className="text-xs text-white/30 mb-1 block">ערך</label>
-                        <input
-                          className="input-field"
-                          placeholder="לדוגמה: 5+ שנים"
-                          value={detail.value}
-                          onChange={(e) => updateDetail(i, "value", e.target.value)}
-                        />
-                      </div>
-                    </div>
+              <Accordion title="רקע ותמונה">
+                <BackgroundEditor
+                  background={posterData.background}
+                  onChange={(background) => updateField("background", background)}
+                />
+              </Accordion>
+
+              <Accordion title="גופן">
+                <FontPicker
+                  fontStack={posterData.theme.fontStack}
+                  onChange={(fontStack) =>
+                    updateField("theme", { ...posterData.theme, fontStack })
+                  }
+                />
+              </Accordion>
+
+              {/* Tier 3 — behind advanced toggle */}
+              <div>
+                <button
+                  onClick={() => setAdvancedOpen(!advancedOpen)}
+                  className="w-full flex items-center justify-between p-3 text-sm text-white/40 hover:text-white/60 transition-colors cursor-pointer"
+                >
+                  <span>הגדרות מתקדמות</span>
+                  <i
+                    className={`fa-solid fa-chevron-down transition-transform ${advancedOpen ? "rotate-180" : ""}`}
+                    style={{ fontSize: 11 }}
+                  />
+                </button>
+                {advancedOpen && (
+                  <div className="glass-card p-6 mt-1">
+                    <ExportSettings
+                      format={posterData.format}
+                      badge={posterData.badge}
+                      onFormatChange={(f) => updateField("format", f)}
+                      onBadgeChange={(badge) => updateField("badge", badge)}
+                    />
                   </div>
-                ))}
+                )}
               </div>
 
-              {/* Contact */}
-              <div className="glass-card p-6 space-y-4">
-                <div className="section-title">פרטי יצירת קשר</div>
-                <div>
-                  <label className="text-xs text-white/30 mb-1 block">ערוץ</label>
-                  <select
-                    className="input-field"
-                    value={posterData.contact.method}
-                    onChange={(e) =>
-                      updateField("contact", { ...posterData.contact, method: e.target.value as PosterData["contact"]["method"] })
-                    }
-                  >
-                    <option value="whatsapp">וואטסאפ</option>
-                    <option value="email">אימייל</option>
-                    <option value="phone">טלפון</option>
-                    <option value="link">קישור</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs text-white/30 mb-1 block">מספר / כתובת</label>
-                  <input
-                    className="input-field"
-                    value={posterData.contact.value}
-                    onChange={(e) =>
-                      updateField("contact", { ...posterData.contact, value: e.target.value })
-                    }
-                  />
-                </div>
-              </div>
+              {/* "Improve with AI" button */}
+              <button
+                onClick={handleAiImprove}
+                disabled={improveLoading}
+                className="w-full py-3 rounded-xl bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.08] transition-all text-sm font-medium cursor-pointer flex items-center justify-center gap-2"
+              >
+                {improveLoading ? (
+                  <>
+                    <div className="loading-spinner" style={{ width: 18, height: 18 }} />
+                    משפר...
+                  </>
+                ) : (
+                  <>
+                    <i className="fa-solid fa-wand-magic-sparkles text-[#6366f1]" />
+                    שפר עם AI
+                  </>
+                )}
+              </button>
             </>
           )}
 
-          {/* Generate button */}
-          <button
-            onClick={handleGenerate}
-            disabled={loading}
-            className="accent-btn w-full flex items-center justify-center gap-3 text-lg py-4"
-          >
-            {loading ? (
-              <>
-                <div className="loading-spinner" />
-                מייצר פוסטר...
-              </>
-            ) : (
-              <>
-                <i className="fa-solid fa-file-export" />
-                ייצוא JPG
-              </>
-            )}
-          </button>
-
+          {/* Error display */}
           {error && (
             <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
               <i className="fa-solid fa-triangle-exclamation ml-2" />
@@ -576,84 +418,9 @@ function EditorContent() {
           )}
         </div>
 
-        {/* Right: Preview */}
+        {/* ── Preview (sticky right panel) ─────────────────── */}
         <div className="lg:sticky lg:top-8 self-start">
-          <div className="flex items-center justify-between mb-4">
-            <div className="section-title !mb-0">תצוגה מקדימה</div>
-            <div className="flex items-center gap-2 text-xs">
-              {previewUrl ? (
-                <span className="text-emerald-400 flex items-center gap-1.5">
-                  <i className="fa-solid fa-circle text-[6px]" />
-                  JPG מוכן
-                </span>
-              ) : (
-                <span className="text-[#6366f1] flex items-center gap-1.5">
-                  <i className="fa-solid fa-circle text-[6px] animate-pulse" />
-                  תצוגה חיה
-                </span>
-              )}
-            </div>
-          </div>
-
-          {/* Live iframe preview / rendered JPG */}
-          <div
-            ref={previewRef}
-            className="w-full rounded-2xl overflow-hidden border border-white/[0.06] bg-[#111118] relative"
-            style={{ height: `${Math.min(scaledHeight, 700)}px`, maxHeight: "75vh" }}
-          >
-            {previewUrl ? (
-              <img
-                src={previewUrl}
-                alt="poster preview"
-                className="w-full h-full object-contain"
-              />
-            ) : liveHtml ? (
-              <iframe
-                srcDoc={liveHtml}
-                title="Live poster preview"
-                sandbox="allow-same-origin"
-                className="border-0 pointer-events-none"
-                style={{
-                  width: `${dims.width}px`,
-                  height: `${dims.height}px`,
-                  transform: `scale(${iframeScale})`,
-                  transformOrigin: "top right",
-                  position: "absolute",
-                  top: 0,
-                  right: 0,
-                }}
-              />
-            ) : (
-              <div className="flex items-center justify-center h-full text-center text-white/20 p-8">
-                <div>
-                  <i className="fa-solid fa-image text-5xl mb-4 block" />
-                  <p>הפוסטר יופיע כאן</p>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Action buttons */}
-          <div className="mt-4 flex gap-3">
-            {previewUrl && (
-              <button
-                onClick={handleDownload}
-                className="flex-1 py-3 rounded-xl bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.08] transition-all text-sm font-medium cursor-pointer"
-              >
-                <i className="fa-solid fa-download ml-2" />
-                הורידו JPG
-              </button>
-            )}
-            {previewUrl && (
-              <button
-                onClick={() => setPreviewUrl(null)}
-                className="py-3 px-4 rounded-xl bg-white/[0.04] border border-white/[0.08] hover:bg-white/[0.08] transition-all text-sm cursor-pointer text-white/40"
-                title="חזרה לתצוגה חיה"
-              >
-                <i className="fa-solid fa-arrow-rotate-left" />
-              </button>
-            )}
-          </div>
+          <LivePreview posterData={posterData} />
         </div>
       </div>
     </div>
