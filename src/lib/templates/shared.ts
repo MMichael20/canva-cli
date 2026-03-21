@@ -188,6 +188,7 @@ export function renderBenefitChips(data: PosterData, scale: number): string {
       display: inline-block;
       background: ${hexToRgba(data.theme.primary, 0.15)};
       color: ${data.theme.primary};
+      border: 1.5px solid ${hexToRgba(data.theme.primary, 0.3)};
       padding: ${4 * scale}px ${12 * scale}px;
       border-radius: ${16 * scale}px;
       font-size: ${14 * scale}px;

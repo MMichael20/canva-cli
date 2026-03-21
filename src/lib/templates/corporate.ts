@@ -13,6 +13,24 @@ export function renderCorporate(data: PosterData): string {
 
   const headerHeight = isSquare ? 140 * scale : 180 * scale;
 
+  // Corporate uses a light background — the shared utilities use opacity-based
+  // colors designed for dark backgrounds. We create a "light-adapted" data object
+  // that passes colors the utilities will render correctly on #F7F7FA.
+  //
+  // Shared utils use:
+  //   detail labels:  hexToRgba(textColor, 0.5)  → needs dark textColor so 50% is readable
+  //   detail values:  textColor                   → needs dark
+  //   benefit chips:  hexToRgba(primary, 0.15) bg + primary text → need strong primary
+  //   salary:         primary                     → needs strong primary
+  //   footer:         hexToRgba(textColor, 0.3)   → needs dark textColor
+  const lightData: PosterData = {
+    ...data,
+    theme: {
+      ...data.theme,
+      textColor: "#0F172A",  // very dark text so 50% opacity = solid gray, 30% = visible
+    },
+  };
+
   return `<!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
@@ -77,8 +95,9 @@ export function renderCorporate(data: PosterData): string {
     }
 
     .divider {
-      height: 1px;
-      background: #E2E8F0;
+      height: 2px;
+      background: ${data.theme.primary};
+      opacity: 0.2;
       margin: ${8 * scale}px 0;
     }
 
@@ -88,8 +107,8 @@ export function renderCorporate(data: PosterData): string {
       position: absolute;
       inset: 0;
       background-image:
-        linear-gradient(rgba(0,0,0,0.02) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(0,0,0,0.02) 1px, transparent 1px);
+        linear-gradient(rgba(0,0,0,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,0,0,0.03) 1px, transparent 1px);
       background-size: ${40 * scale}px ${40 * scale}px;
       pointer-events: none;
       z-index: 0;
@@ -120,15 +139,15 @@ export function renderCorporate(data: PosterData): string {
 
     <div class="divider"></div>
 
-    ${renderDetailsList({ ...data, theme: { ...data.theme, textColor: "#1E293B" } }, scale, "grid")}
+    ${renderDetailsList(lightData, scale, "grid")}
 
-    ${renderSalary({ ...data, theme: { ...data.theme } }, scale)}
+    ${renderSalary(lightData, scale)}
 
-    ${renderBenefitChips(data, scale)}
+    ${renderBenefitChips(lightData, scale)}
 
     ${renderContactBar(data, scale)}
 
-    ${renderCompanyFooter({ ...data, theme: { ...data.theme, textColor: "#1E293B" } }, scale)}
+    ${renderCompanyFooter(lightData, scale)}
   </div>
 </body>
 </html>`;
