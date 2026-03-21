@@ -1,10 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { renderPoster } from "@/lib/renderer";
 import { PosterData } from "@/lib/types";
+import { isOldFormat, migrateOldPosterData } from "@/lib/migration";
 
 export async function POST(request: NextRequest) {
   try {
-    const data: PosterData = await request.json();
+    let data: PosterData = await request.json();
+
+    // Support old format via migration
+    if (isOldFormat(data)) {
+      data = migrateOldPosterData(data as unknown as Parameters<typeof migrateOldPosterData>[0]);
+    }
+
     const imageBuffer = await renderPoster(data);
 
     return new NextResponse(imageBuffer, {
