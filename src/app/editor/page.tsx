@@ -10,6 +10,7 @@ import {
   INDUSTRY_PRESETS,
   THEME_PRESETS,
   IndustryPreset,
+  PosterCompany,
 } from "@/lib/types";
 import TitleEditor from "../components/sidebar/TitleEditor";
 import CompanyEditor from "../components/sidebar/CompanyEditor";
@@ -101,11 +102,11 @@ function EditorContent() {
   // Read wizard data from sessionStorage on mount
   useEffect(() => {
     try {
-      const raw = sessionStorage.getItem("wizard");
+      const raw = sessionStorage.getItem("wizardData");
       if (!raw) return;
       const wizard = JSON.parse(raw) as {
-        company?: string;
-        title?: string;
+        company?: PosterCompany;
+        titleHe?: string;
         industry?: IndustryPreset;
         format?: PosterFormat;
         template?: TemplateId;
@@ -115,10 +116,10 @@ function EditorContent() {
         const updated = { ...prev };
 
         if (wizard.company) {
-          updated.company = { ...updated.company, name: wizard.company };
+          updated.company = { ...updated.company, ...wizard.company };
         }
-        if (wizard.title) {
-          updated.title = { ...updated.title, he: wizard.title };
+        if (wizard.titleHe) {
+          updated.title = { ...updated.title, he: wizard.titleHe };
         }
         if (wizard.format) {
           updated.format = wizard.format;
@@ -200,7 +201,7 @@ function EditorContent() {
       const res = await fetch("/api/ai-improve", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(posterData),
+        body: JSON.stringify({ posterData }),
       });
 
       if (!res.ok) {
@@ -208,10 +209,28 @@ function EditorContent() {
         throw new Error(err.error || "שגיאה בשיפור AI");
       }
 
-      const improved = await res.json();
-      console.log("AI improve response:", improved);
-      if (improved && typeof improved === "object" && improved.format) {
-        setPosterData(improved as PosterData);
+      const result = await res.json();
+      if (result?.suggestions?.length > 0) {
+        // Apply each suggestion to posterData
+        setPosterData((prev) => {
+          const updated = JSON.parse(JSON.stringify(prev)) as PosterData;
+          for (const s of result.suggestions) {
+            if (s.field === "title.he") updated.title.he = s.suggested;
+            else if (s.field === "title.en") updated.title = { ...updated.title, en: s.suggested };
+            else if (s.field === "subtitle") updated.subtitle = s.suggested;
+            else if (s.field === "company.name") updated.company.name = s.suggested;
+            else if (s.field.startsWith("details[")) {
+              const match = s.field.match(/details\[(\d+)\]\.(\w+)/);
+              if (match && updated.details[Number(match[1])]) {
+                (updated.details[Number(match[1])] as unknown as Record<string, string>)[match[2]] = s.suggested;
+              }
+            }
+            else if (s.field === "benefits") {
+              try { updated.benefits = JSON.parse(s.suggested); } catch { /* skip */ }
+            }
+          }
+          return updated;
+        });
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "שגיאה לא צפויה");
