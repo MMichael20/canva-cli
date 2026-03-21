@@ -2,7 +2,7 @@ import { PosterData, FORMAT_DIMENSIONS } from "../types";
 import {
   sharedHead, baseStyles, escapeHtml, hexToRgba,
   renderLogoZone, renderBadge, renderDetailsList,
-  renderBenefitChips, renderContactBar,
+  renderBenefitChips, renderSalary, renderContactBar,
 } from "./shared";
 
 export function renderBoldUrgent(data: PosterData): string {
@@ -56,12 +56,8 @@ export function renderBoldUrgent(data: PosterData): string {
       margin-top: ${isSquare ? 8 * scale : 16 * scale}px;
     }
 
-    .details-section .detail-item .detail-label-text {
-      display: none !important;
-    }
-
-    /* Hide the label div in details — show icon + value only */
-    .details-section [style*="font-size: ${14 * scale}px"] {
+    /* Hide detail labels — show icon + value only */
+    .details-section .detail-item div:first-of-type > div:first-child {
       display: none !important;
     }
 
@@ -93,6 +89,11 @@ export function renderBoldUrgent(data: PosterData): string {
     </div>
 
     ${renderBenefitChips({
+      ...data,
+      theme: { ...data.theme, primary: "#FFFFFF" },
+    }, scale)}
+
+    ${renderSalary({
       ...data,
       theme: { ...data.theme, primary: "#FFFFFF" },
     }, scale)}

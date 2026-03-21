@@ -99,11 +99,10 @@ export function renderLogoCentered(data: PosterData): string {
         <img src="${escapeHtml(data.company.logoUrl)}" alt="${escapeHtml(data.company.name)}"
           onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\\'company-name-hero\\'>${escapeHtml(data.company.name)}</div>';" />
       </div>
+      ${data.company.name ? `<div class="company-name-hero">${escapeHtml(data.company.name)}</div>` : ""}
     ` : `
       <div class="company-name-hero">${escapeHtml(data.company.name)}</div>
     `}
-
-    ${data.company.name ? `<div class="company-name-hero">${escapeHtml(data.company.name)}</div>` : ""}
 
     <div class="thin-divider"></div>
 
