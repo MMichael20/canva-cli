@@ -1,10 +1,18 @@
 import type { PosterData, TemplateId } from "../types";
 import { renderCorporate } from "./corporate";
+import { renderPhotoBanner } from "./photo-banner";
+import { renderClassicSplit } from "./classic-split";
+import { renderBoldUrgent } from "./bold-urgent";
+import { renderLogoCentered } from "./logo-centered";
+import { renderTextStack } from "./text-stack";
 
-// Templates are registered here as they're implemented.
-// Phase 1b will add the remaining 5 templates.
-const TEMPLATE_RENDERERS: Record<string, (data: PosterData) => string> = {
+const TEMPLATE_RENDERERS: Record<TemplateId, (data: PosterData) => string> = {
   corporate: renderCorporate,
+  "photo-banner": renderPhotoBanner,
+  "classic-split": renderClassicSplit,
+  "bold-urgent": renderBoldUrgent,
+  "logo-centered": renderLogoCentered,
+  "text-stack": renderTextStack,
 };
 
 export function generateTemplateHtml(data: PosterData): string {

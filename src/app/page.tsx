@@ -2,53 +2,45 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { PosterFormat, TemplateId, FORMAT_DIMENSIONS, TEMPLATES } from "@/lib/templates";
+import { PosterFormat, TemplateId, FORMAT_DIMENSIONS, TEMPLATES } from "@/lib/types";
 
 const FORMAT_ICONS: Record<PosterFormat, string> = {
   story: "fa-solid fa-mobile-screen",
-  post: "fa-solid fa-square",
+  square: "fa-solid fa-square",
   a4: "fa-solid fa-file",
 };
 
 const TEMPLATE_PREVIEWS: Record<TemplateId, { gradient: string; icon: string }> = {
-  "dark-cards": {
-    gradient: "linear-gradient(135deg, #0B0D17 0%, #1a1a2e 50%, #16213e 100%)",
-    icon: "fa-solid fa-table-cells-large",
-  },
-  "bold-photo": {
+  "photo-banner": {
     gradient: "linear-gradient(135deg, #2d1b4e 0%, #1a1a2e 50%, #0f2027 100%)",
     icon: "fa-solid fa-image",
   },
-  "split-color": {
+  "classic-split": {
     gradient: "linear-gradient(180deg, #1a3a5c 0%, #1a3a5c 45%, #2563EB 45%, #2563EB 100%)",
     icon: "fa-solid fa-circle-half-stroke",
   },
-  "geometric": {
-    gradient: "linear-gradient(135deg, #0f172a 0%, #1e293b 40%, #f59e0b 100%)",
-    icon: "fa-solid fa-diamond",
-  },
-  "gradient-wave": {
-    gradient: "linear-gradient(180deg, #1a1a2e 0%, #6366f1 50%, #06b6d4 100%)",
-    icon: "fa-solid fa-water",
-  },
-  "clean-corporate": {
+  "corporate": {
     gradient: "linear-gradient(180deg, #2563EB 0%, #2563EB 15%, #F7F7FA 15%, #F7F7FA 100%)",
     icon: "fa-solid fa-building-columns",
   },
-  "vibrant-pop": {
+  "bold-urgent": {
     gradient: "linear-gradient(135deg, #F59E0B 0%, #EA580C 100%)",
     icon: "fa-solid fa-fire",
   },
-  "minimal-elegant": {
-    gradient: "linear-gradient(180deg, #FAFAF8 0%, #F0F0EE 100%)",
-    icon: "fa-solid fa-feather",
+  "logo-centered": {
+    gradient: "linear-gradient(135deg, #0B0D17 0%, #1a1a2e 50%, #16213e 100%)",
+    icon: "fa-solid fa-bullseye",
+  },
+  "text-stack": {
+    gradient: "linear-gradient(180deg, #0B0D17 0%, #111827 100%)",
+    icon: "fa-solid fa-align-right",
   },
 };
 
 export default function HomePage() {
   const router = useRouter();
   const [format, setFormat] = useState<PosterFormat>("story");
-  const [template, setTemplate] = useState<TemplateId>("dark-cards");
+  const [template, setTemplate] = useState<TemplateId>("corporate");
 
   const handleStart = () => {
     router.push(`/editor?format=${format}&template=${template}`);
@@ -127,7 +119,7 @@ export default function HomePage() {
                     className="w-full aspect-[3/4] rounded-xl flex items-center justify-center relative overflow-hidden"
                     style={{ background: TEMPLATE_PREVIEWS[key].gradient }}
                   >
-                    <i className={`${TEMPLATE_PREVIEWS[key].icon} text-3xl ${key === "minimal-elegant" || key === "clean-corporate" ? "text-black/15" : "text-white/20"}`} />
+                    <i className={`${TEMPLATE_PREVIEWS[key].icon} text-3xl ${key === "corporate" ? "text-black/15" : "text-white/20"}`} />
                     {template === key && (
                       <div className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-xl">
                         <i className="fa-solid fa-check text-2xl text-[#6366f1]" />

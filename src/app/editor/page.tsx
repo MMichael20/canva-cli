@@ -9,8 +9,8 @@ import {
   TemplateId,
   FORMAT_DIMENSIONS,
   DEFAULT_POSTER_DATA,
-} from "@/lib/templates";
-import { generateTemplateHtml } from "@/lib/template-html";
+} from "@/lib/types";
+import { generateTemplateHtml } from "@/lib/templates/index";
 
 type InputMode = "manual" | "ai" | "json";
 
@@ -49,12 +49,12 @@ const ICON_OPTIONS = [
 ];
 
 const THEME_PRESETS = [
-  { name: "סגול-תכלת", primary: "#6366F1", accent: "#06B6D4", bg: "#0B0D17" },
-  { name: "כתום-צהוב", primary: "#EA580C", accent: "#F59E0B", bg: "#0F1419" },
-  { name: "ירוק-טורקיז", primary: "#059669", accent: "#14B8A6", bg: "#0A1210" },
-  { name: "ורוד-סגול", primary: "#EC4899", accent: "#8B5CF6", bg: "#120A14" },
-  { name: "אדום-כתום", primary: "#DC2626", accent: "#F97316", bg: "#140A0A" },
-  { name: "כחול-תכלת", primary: "#2563EB", accent: "#38BDF8", bg: "#0A0F1A" },
+  { name: "סגול-תכלת", primary: "#6366F1", secondary: "#06B6D4", bg: "#0B0D17", text: "#F0F0F5" },
+  { name: "כתום-צהוב", primary: "#EA580C", secondary: "#F59E0B", bg: "#0F1419", text: "#F0F0F5" },
+  { name: "ירוק-טורקיז", primary: "#059669", secondary: "#14B8A6", bg: "#0A1210", text: "#F0F0F5" },
+  { name: "ורוד-סגול", primary: "#EC4899", secondary: "#8B5CF6", bg: "#120A14", text: "#F0F0F5" },
+  { name: "אדום-כתום", primary: "#DC2626", secondary: "#F97316", bg: "#140A0A", text: "#F0F0F5" },
+  { name: "כחול-תכלת", primary: "#2563EB", secondary: "#38BDF8", bg: "#0A0F1A", text: "#F0F0F5" },
 ];
 
 export default function EditorPage() {
@@ -68,7 +68,7 @@ export default function EditorPage() {
 function EditorContent() {
   const searchParams = useSearchParams();
   const format = (searchParams.get("format") || "story") as PosterFormat;
-  const template = (searchParams.get("template") || "dark-cards") as TemplateId;
+  const template = (searchParams.get("template") || "corporate") as TemplateId;
 
   const [mode, setMode] = useState<InputMode>("manual");
   const [loading, setLoading] = useState(false);
@@ -304,7 +304,7 @@ function EditorContent() {
               <div className="section-title">הדביקו JSON של פוסטר</div>
               <textarea
                 className="input-field json-editor"
-                placeholder='{"badge":{"icon":"fa-solid fa-bolt","text":"מגייסים!"},...}'
+                placeholder='{"title":{"he":"..."},...}'
                 value={jsonInput}
                 onChange={(e) => setJsonInput(e.target.value)}
               />
@@ -326,9 +326,11 @@ function EditorContent() {
                       key={t.name}
                       onClick={() =>
                         updateField("theme", {
+                          ...posterData.theme,
                           primary: t.primary,
-                          accent: t.accent,
+                          secondary: t.secondary,
                           bgColor: t.bg,
+                          textColor: t.text,
                         })
                       }
                       className={`flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer ${
@@ -344,7 +346,7 @@ function EditorContent() {
                         />
                         <div
                           className="w-5 h-5 rounded-full"
-                          style={{ background: t.accent }}
+                          style={{ background: t.secondary }}
                         />
                       </div>
                       <span className="text-sm">{t.name}</span>
@@ -353,36 +355,36 @@ function EditorContent() {
                 </div>
               </div>
 
+              {/* Company */}
+              <div className="glass-card p-6 space-y-4">
+                <div className="section-title">פרטי חברה</div>
+                <div>
+                  <label className="text-xs text-white/30 mb-1 block">שם החברה</label>
+                  <input
+                    className="input-field"
+                    value={posterData.company.name}
+                    onChange={(e) =>
+                      updateField("company", { ...posterData.company, name: e.target.value })
+                    }
+                  />
+                </div>
+              </div>
+
               {/* Badge */}
               <div className="glass-card p-6 space-y-4">
                 <div className="section-title">תג עליון</div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-xs text-white/30 mb-1 block">טקסט</label>
-                    <input
-                      className="input-field"
-                      value={posterData.badge.text}
-                      onChange={(e) =>
-                        updateField("badge", { ...posterData.badge, text: e.target.value })
-                      }
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs text-white/30 mb-1 block">אייקון</label>
-                    <select
-                      className="input-field"
-                      value={posterData.badge.icon}
-                      onChange={(e) =>
-                        updateField("badge", { ...posterData.badge, icon: e.target.value })
-                      }
-                    >
-                      {ICON_OPTIONS.map((opt) => (
-                        <option key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                <div>
+                  <label className="text-xs text-white/30 mb-1 block">טקסט</label>
+                  <input
+                    className="input-field"
+                    value={posterData.badge?.text || ""}
+                    onChange={(e) =>
+                      updateField("badge", {
+                        text: e.target.value,
+                        style: posterData.badge?.style || "default",
+                      })
+                    }
+                  />
                 </div>
               </div>
 
@@ -393,7 +395,7 @@ function EditorContent() {
                   <label className="text-xs text-white/30 mb-1 block">כותרת משנה</label>
                   <input
                     className="input-field"
-                    value={posterData.subtitle}
+                    value={posterData.subtitle || ""}
                     onChange={(e) => updateField("subtitle", e.target.value)}
                   />
                 </div>
@@ -401,8 +403,10 @@ function EditorContent() {
                   <label className="text-xs text-white/30 mb-1 block">שם תפקיד בעברית</label>
                   <input
                     className="input-field"
-                    value={posterData.titleHe}
-                    onChange={(e) => updateField("titleHe", e.target.value)}
+                    value={posterData.title.he}
+                    onChange={(e) =>
+                      updateField("title", { ...posterData.title, he: e.target.value })
+                    }
                   />
                 </div>
                 <div>
@@ -410,8 +414,10 @@ function EditorContent() {
                   <input
                     className="input-field"
                     style={{ direction: "ltr", textAlign: "left" }}
-                    value={posterData.titleEn}
-                    onChange={(e) => updateField("titleEn", e.target.value)}
+                    value={posterData.title.en || ""}
+                    onChange={(e) =>
+                      updateField("title", { ...posterData.title, en: e.target.value })
+                    }
                   />
                 </div>
               </div>
@@ -427,15 +433,23 @@ function EditorContent() {
                     className="input-field"
                     placeholder="לדוגמה: office, technology, truck..."
                     style={{ direction: "ltr", textAlign: "left" }}
-                    value={posterData.backgroundUrl || posterData.backgroundQuery || ""}
+                    value={posterData.background.imageUrl || posterData.background.imageQuery || ""}
                     onChange={(e) => {
                       const val = e.target.value;
                       if (val.startsWith("http")) {
-                        updateField("backgroundUrl", val);
-                        updateField("backgroundQuery", undefined);
+                        updateField("background", {
+                          ...posterData.background,
+                          type: "image",
+                          imageUrl: val,
+                          imageQuery: undefined,
+                        });
                       } else {
-                        updateField("backgroundQuery", val);
-                        updateField("backgroundUrl", undefined);
+                        updateField("background", {
+                          ...posterData.background,
+                          type: val ? "image" : "solid",
+                          imageQuery: val || undefined,
+                          imageUrl: undefined,
+                        });
                       }
                     }}
                   />
@@ -503,26 +517,31 @@ function EditorContent() {
                 ))}
               </div>
 
-              {/* CTA */}
+              {/* Contact */}
               <div className="glass-card p-6 space-y-4">
-                <div className="section-title">קריאה לפעולה (CTA)</div>
+                <div className="section-title">פרטי יצירת קשר</div>
                 <div>
-                  <label className="text-xs text-white/30 mb-1 block">טקסט ראשי</label>
-                  <input
+                  <label className="text-xs text-white/30 mb-1 block">ערוץ</label>
+                  <select
                     className="input-field"
-                    value={posterData.cta.text}
+                    value={posterData.contact.method}
                     onChange={(e) =>
-                      updateField("cta", { ...posterData.cta, text: e.target.value })
+                      updateField("contact", { ...posterData.contact, method: e.target.value as PosterData["contact"]["method"] })
                     }
-                  />
+                  >
+                    <option value="whatsapp">וואטסאפ</option>
+                    <option value="email">אימייל</option>
+                    <option value="phone">טלפון</option>
+                    <option value="link">קישור</option>
+                  </select>
                 </div>
                 <div>
-                  <label className="text-xs text-white/30 mb-1 block">טקסט משני</label>
+                  <label className="text-xs text-white/30 mb-1 block">מספר / כתובת</label>
                   <input
                     className="input-field"
-                    value={posterData.cta.subtext}
+                    value={posterData.contact.value}
                     onChange={(e) =>
-                      updateField("cta", { ...posterData.cta, subtext: e.target.value })
+                      updateField("contact", { ...posterData.contact, value: e.target.value })
                     }
                   />
                 </div>
