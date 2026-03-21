@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "פוסטר מייקר | יצירת פוסטרים לגיוס",
-  description: "כלי ליצירת פוסטרים מקצועיים לגיוס עובדים",
+  title: "פוסטר מייקר | יצירת פוסטרים מקצועיים לגיוס",
+  description: "כלי חכם ליצירת פוסטרים מקצועיים לגיוס עובדים — מותאם לשוק הישראלי",
 };
 
 export default function RootLayout({
