@@ -1,7 +1,7 @@
 import puppeteer, { Browser } from "puppeteer";
 import sharp from "sharp";
-import { PosterData, FORMAT_DIMENSIONS } from "./templates";
-import { generateTemplateHtml } from "./template-html";
+import { PosterData, FORMAT_DIMENSIONS } from "./types";
+import { generateTemplateHtml } from "./templates/index";
 
 let browserInstance: Browser | null = null;
 
@@ -15,6 +15,9 @@ async function getBrowser(): Promise<Browser> {
   });
   return browserInstance;
 }
+
+const MAX_FILE_SIZE = 800 * 1024; // 800KB target for WhatsApp
+const MIN_QUALITY = 80;
 
 export async function renderPoster(data: PosterData): Promise<Buffer> {
   const { width, height } = FORMAT_DIMENSIONS[data.format];
@@ -31,7 +34,21 @@ export async function renderPoster(data: PosterData): Promise<Buffer> {
 
     const screenshot = (await page.screenshot({ type: "png" })) as Buffer;
 
-    const jpegBuffer = await sharp(screenshot).jpeg({ quality: 92, mozjpeg: true }).toBuffer();
+    // Apply sharpening to counteract WhatsApp compression blur
+    let quality = 88;
+    let jpegBuffer = await sharp(screenshot)
+      .sharpen({ sigma: 0.5 })
+      .jpeg({ quality, mozjpeg: true })
+      .toBuffer();
+
+    // Iteratively reduce quality if file is too large
+    while (jpegBuffer.length > MAX_FILE_SIZE && quality > MIN_QUALITY) {
+      quality -= 2;
+      jpegBuffer = await sharp(screenshot)
+        .sharpen({ sigma: 0.5 })
+        .jpeg({ quality, mozjpeg: true })
+        .toBuffer();
+    }
 
     return jpegBuffer;
   } finally {

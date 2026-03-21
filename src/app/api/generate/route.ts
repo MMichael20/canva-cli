@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { renderPoster } from "@/lib/renderer";
-import { PosterData } from "@/lib/templates";
+import { PosterData } from "@/lib/types";
 
 export async function POST(request: NextRequest) {
   try {

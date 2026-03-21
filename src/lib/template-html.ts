@@ -2046,3 +2046,6 @@ export function generateTemplateHtml(data: PosterData): string {
   }
   return renderer(data);
 }
+
+// Forward to new template system for any new template IDs
+export { generateTemplateHtml as generateTemplateHtmlNew } from "./templates/index";

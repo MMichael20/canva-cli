@@ -57,3 +57,6 @@ export const DEFAULT_POSTER_DATA: PosterData = {
   cta: { text: "מתאים לך? שלח/י קורות חיים", subtext: "לפרטים נוספים שלחו הודעה", icon: "fa-solid fa-paper-plane" },
   theme: { primary: "#6366F1", accent: "#06B6D4", bgColor: "#0B0D17" },
 };
+
+// Re-export new types for gradual migration
+export type { PosterData as PosterDataNew } from "./types";
