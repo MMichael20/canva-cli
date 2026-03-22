@@ -1,24 +1,29 @@
 import { NextRequest, NextResponse } from "next/server";
 import { renderPoster } from "@/lib/renderer";
-import { PosterData } from "@/lib/types";
-import { isOldFormat, migrateOldPosterData } from "@/lib/migration";
+import { PosterData, FormatId, FORMAT_DIMENSIONS } from "@/lib/types";
 
 export async function POST(request: NextRequest) {
   try {
-    let data: PosterData = await request.json();
+    const { posterData, formatId } = (await request.json()) as {
+      posterData: PosterData;
+      formatId: FormatId;
+    };
 
-    // Support old format via migration
-    if (isOldFormat(data)) {
-      data = migrateOldPosterData(data as unknown as Parameters<typeof migrateOldPosterData>[0]);
+    const dimensions = FORMAT_DIMENSIONS[formatId];
+    if (!dimensions) {
+      return NextResponse.json(
+        { error: `Unknown format: ${formatId}` },
+        { status: 400 }
+      );
     }
 
-    const imageBuffer = await renderPoster(data);
+    const imageBuffer = await renderPoster(posterData, dimensions.width, dimensions.height);
 
     return new NextResponse(imageBuffer, {
       status: 200,
       headers: {
         "Content-Type": "image/jpeg",
-        "Content-Disposition": `attachment; filename="poster-${data.format}-${Date.now()}.jpg"`,
+        "Content-Disposition": `attachment; filename="poster-${formatId}-${Date.now()}.jpg"`,
       },
     });
   } catch (error: unknown) {

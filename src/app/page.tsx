@@ -1,192 +1,180 @@
 "use client";
+import { useState, useCallback } from "react";
+import type { PosterVariant } from "@/lib/types";
+import ChatInput from "./components/ChatInput";
+import LoadingSequence from "./components/LoadingSequence";
+import PosterGrid from "./components/PosterGrid";
+import FormatModal from "./components/FormatModal";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { TemplateId, IndustryPreset, PosterCompany, PosterData, INDUSTRY_PRESETS } from "@/lib/types";
-import QuickStart from "./components/QuickStart";
-import ChooseLook from "./components/ChooseLook";
+type Phase = "idle" | "loading" | "results" | "error";
 
-interface WizardData {
-  industry: IndustryPreset;
-  company: PosterCompany;
-  titleHe: string;
-  aiMode?: { description: string; model: string };
-}
+export default function Home() {
+  const [phase, setPhase] = useState<Phase>("idle");
+  const [variants, setVariants] = useState<PosterVariant[]>([]);
+  const [selectedVariant, setSelectedVariant] = useState<PosterVariant | null>(null);
+  const [error, setError] = useState<string>("");
+  const [apiDone, setApiDone] = useState(false);
+  const [timerDone, setTimerDone] = useState(false);
+  const [pendingVariants, setPendingVariants] = useState<PosterVariant[] | null>(null);
+  const [imageQuery, setImageQuery] = useState("");
+  const [imagePage, setImagePage] = useState(1);
+  const [swapping, setSwapping] = useState(false);
 
-export default function HomePage() {
-  const router = useRouter();
-  const [step, setStep] = useState<1 | 2 | 3>(1);
-  const [wizardData, setWizardData] = useState<WizardData | null>(null);
-  const [template, setTemplate] = useState<TemplateId>("corporate");
-  const [isAiMode, setIsAiMode] = useState(false);
+  const handleSubmit = async (description: string, model?: string) => {
+    setPhase("loading");
+    setError("");
+    setApiDone(false);
+    setTimerDone(false);
+    setPendingVariants(null);
 
-  const handleQuickStartComplete = (data: WizardData) => {
-    setWizardData(data);
-    // Set default template based on industry
-    const preset = INDUSTRY_PRESETS[data.industry];
-    setTemplate(preset.defaultTemplate);
-    setStep(2);
-  };
-
-  const handleChooseLookContinue = async () => {
-    if (!wizardData) return;
-
-    // Store wizard data in sessionStorage for the editor
-    sessionStorage.setItem(
-      "wizardData",
-      JSON.stringify({
-        ...wizardData,
-        template,
-      })
-    );
-
-    setIsAiMode(!!wizardData.aiMode);
-    setStep(3);
-
-    if (wizardData.aiMode) {
-      // AI mode: call the generation API, save full poster data, then redirect
-      try {
-        const res = await fetch("/api/ai-generate", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            description: wizardData.aiMode.description,
-            format: "square",
-            template,
-            model: wizardData.aiMode.model,
-          }),
-        });
-
-        if (res.ok) {
-          const aiData: PosterData = await res.json();
-          sessionStorage.setItem("wizardPosterData", JSON.stringify(aiData));
-        }
-        // If AI call fails, we still redirect — editor will use wizardData fallback
-      } catch {
-        // Network error — still redirect; editor handles gracefully
+    try {
+      const res = await fetch("/api/ai-generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ description, model }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: "שגיאה בשרת" }));
+        throw new Error(data.error || "שגיאה בשרת");
       }
-    } else {
-      // Manual mode: brief intentional delay so the loading screen feels real
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      const data = await res.json();
+      setPendingVariants(data.variants);
+      setImageQuery(data.imageQuery || "");
+      setImagePage(1);
+      setApiDone(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "שגיאה לא ידועה");
+      setPhase("error");
     }
-
-    router.push(`/editor?format=square&template=${template}`);
   };
 
-  const stepLabels = ["פרטים ראשוניים", "בחירת תבנית", "עריכה"];
+  const handleTimerComplete = useCallback(() => {
+    setTimerDone(true);
+  }, []);
+
+  // Transition to results when both API and timer are done
+  if (apiDone && timerDone && pendingVariants && phase === "loading") {
+    setVariants(pendingVariants);
+    setPhase("results");
+    setApiDone(false);
+    setTimerDone(false);
+    setPendingVariants(null);
+  }
+
+  const handleSwapImage = async () => {
+    if (swapping || !imageQuery || variants.length === 0) return;
+    setSwapping(true);
+
+    const nextPage = imagePage + 1;
+    try {
+      const res = await fetch("/api/swap-image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          imageQuery,
+          page: nextPage,
+          variants: variants.map((v) => ({ posterData: v.posterData })),
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: "שגיאה" }));
+        throw new Error(data.error || "שגיאה בהחלפת תמונה");
+      }
+
+      const { imageUrl, thumbnails } = await res.json();
+
+      setVariants((prev) =>
+        prev.map((v, i) => ({
+          ...v,
+          posterData: { ...v.posterData, imageUrl },
+          thumbnail: thumbnails[i] || v.thumbnail,
+        }))
+      );
+
+      // Update selectedVariant if modal is open
+      setSelectedVariant((prev) => {
+        if (!prev) return null;
+        const idx = variants.findIndex((v) => v.id === prev.id);
+        if (idx === -1) return prev;
+        return {
+          ...prev,
+          posterData: { ...prev.posterData, imageUrl },
+          thumbnail: thumbnails[idx] || prev.thumbnail,
+        };
+      });
+
+      setImagePage(nextPage);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "שגיאה בהחלפת תמונה");
+    } finally {
+      setSwapping(false);
+    }
+  };
+
+  const handleReset = () => {
+    setPhase("idle");
+    setVariants([]);
+    setSelectedVariant(null);
+    setError("");
+    setImageQuery("");
+    setImagePage(1);
+  };
 
   return (
-    <div className="max-w-4xl mx-auto px-6 py-16">
-      {/* Hero */}
-      <div className="text-center mb-12">
-        <h1 className="text-5xl font-black mb-4">
-          צרו פוסטרים{" "}
-          <span
-            className="bg-clip-text text-transparent"
-            style={{
-              backgroundImage: "linear-gradient(135deg, #6366f1, #06b6d4)",
-            }}
-          >
-            מקצועיים
-          </span>
-        </h1>
-        <p className="text-lg text-white/50 max-w-lg mx-auto">
-          בחרו תחום ותבנית, מלאו את הפרטים, והורידו פוסטר מוכן לפרסום
-        </p>
-      </div>
+    <div className="chat-page">
+      {/* Brand Header — shown in idle state */}
+      {phase === "idle" && (
+        <div className="brand-hero">
+          <div className="brand-glow" />
+          <h1 className="brand-title">Personal Hire</h1>
+          <p className="brand-subtitle">AI Recruitment Posters</p>
+          <p className="brand-description">
+            הדביקו תיאור משרה ותקבלו פוסטר מקצועי לגיוס תוך שניות
+          </p>
+        </div>
+      )}
 
-      {/* Step Indicator */}
-      <div className="flex items-center justify-center gap-2 mb-12">
-        {stepLabels.map((label, i) => {
-          const stepNum = (i + 1) as 1 | 2 | 3;
-          const isActive = step === stepNum;
-          const isDone = step > stepNum;
-          return (
-            <div key={i} className="flex items-center gap-2">
-              {i > 0 && (
-                <div
-                  className={`w-8 h-px ${
-                    isDone ? "bg-[#6366f1]" : "bg-white/10"
-                  }`}
-                />
-              )}
-              <div className="flex items-center gap-2">
-                <div
-                  className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold ${
-                    isActive || isDone ? "" : "bg-white/5 text-white/30"
-                  }`}
-                  style={
-                    isActive || isDone
-                      ? {
-                          background:
-                            "linear-gradient(135deg, #6366f1, #818cf8)",
-                        }
-                      : undefined
-                  }
-                >
-                  {isDone ? (
-                    <i className="fa-solid fa-check text-xs" />
-                  ) : (
-                    stepNum
-                  )}
-                </div>
-                <span
-                  className={`text-sm ${
-                    isActive
-                      ? "text-white font-medium"
-                      : isDone
-                        ? "text-[#6366f1]"
-                        : "text-white/30"
-                  }`}
-                >
-                  {label}
-                </span>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+      {/* Loading */}
+      {phase === "loading" && (
+        <LoadingSequence onComplete={handleTimerComplete} />
+      )}
 
-      {/* Step Content */}
-      {step === 1 && <QuickStart onComplete={handleQuickStartComplete} />}
-      {step === 2 && (
-        <ChooseLook
-          selectedTemplate={template}
-          onSelect={setTemplate}
-          onBack={() => setStep(1)}
-          onContinue={handleChooseLookContinue}
+      {/* Results */}
+      {phase === "results" && (
+        <PosterGrid
+          variants={variants}
+          onSelect={(v) => setSelectedVariant(v)}
+          onReset={handleReset}
+          onSwapImage={imageQuery ? handleSwapImage : undefined}
+          swapping={swapping}
         />
       )}
-      {step === 3 && (
-        <div className="flex flex-col items-center justify-center py-24 gap-8">
-          <div className="glass-card p-12 flex flex-col items-center gap-6 max-w-sm w-full text-center">
-            {/* Animated poster icon */}
-            <div
-              className="w-20 h-20 rounded-2xl flex items-center justify-center"
-              style={{
-                background: "linear-gradient(135deg, #6366f1, #06b6d4)",
-                animation: "pulse 1.5s ease-in-out infinite",
-              }}
-            >
-              <i className="fa-solid fa-file-image text-white text-3xl" />
-            </div>
 
-            {/* Spinner */}
-            <div className="loading-spinner" style={{ width: 32, height: 32 }} />
-
-            {/* Text */}
-            <div className="space-y-2">
-              <p className="text-white font-semibold text-lg">
-                מכינים את הפוסטר שלכם...
-              </p>
-              {isAiMode && (
-                <p className="text-white/50 text-sm">
-                  AI יוצר את התוכן...
-                </p>
-              )}
-            </div>
+      {/* Error */}
+      {phase === "error" && (
+        <div className="error-container">
+          <div className="error-icon">
+            <i className="fa-solid fa-triangle-exclamation" />
           </div>
+          <p className="error-message">{error}</p>
+          <button onClick={handleReset} className="accent-btn">
+            נסו שוב
+          </button>
         </div>
+      )}
+
+      {/* Chat Input — shown in idle state */}
+      {phase === "idle" && (
+        <ChatInput onSubmit={handleSubmit} disabled={false} />
+      )}
+
+      {/* Format Modal */}
+      {selectedVariant && (
+        <FormatModal
+          variant={selectedVariant}
+          onClose={() => setSelectedVariant(null)}
+        />
       )}
     </div>
   );

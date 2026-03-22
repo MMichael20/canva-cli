@@ -1,28 +1,20 @@
 import type { PosterData, TemplateId } from "../types";
-import { renderCorporate } from "./corporate";
-import { renderPhotoBanner } from "./photo-banner";
-import { renderClassicSplit } from "./classic-split";
-import { renderBoldUrgent } from "./bold-urgent";
-import { renderLogoCentered } from "./logo-centered";
-import { renderTextStack } from "./text-stack";
+import { renderStandard } from "./standard";
+import { renderOverlay } from "./overlay";
+import { renderSplit } from "./split";
 
-const TEMPLATE_RENDERERS: Record<TemplateId, (data: PosterData) => string> = {
-  corporate: renderCorporate,
-  "photo-banner": renderPhotoBanner,
-  "classic-split": renderClassicSplit,
-  "bold-urgent": renderBoldUrgent,
-  "logo-centered": renderLogoCentered,
-  "text-stack": renderTextStack,
+type TemplateRenderer = (data: PosterData, width: number, height: number) => string;
+
+const TEMPLATE_RENDERERS: Record<TemplateId, TemplateRenderer> = {
+  standard: renderStandard,
+  overlay: renderOverlay,
+  split: renderSplit,
 };
 
-export function generateTemplateHtml(data: PosterData): string {
+export function generateTemplateHtml(data: PosterData, width: number, height: number): string {
   const renderer = TEMPLATE_RENDERERS[data.template];
   if (!renderer) {
     throw new Error(`Unknown template: ${data.template}. Available: ${Object.keys(TEMPLATE_RENDERERS).join(", ")}`);
   }
-  return renderer(data);
-}
-
-export function getAvailableTemplates(): TemplateId[] {
-  return Object.keys(TEMPLATE_RENDERERS) as TemplateId[];
+  return renderer(data, width, height);
 }

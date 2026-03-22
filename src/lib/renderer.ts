@@ -1,6 +1,6 @@
 import puppeteer, { Browser } from "puppeteer";
 import sharp from "sharp";
-import { PosterData, FORMAT_DIMENSIONS } from "./types";
+import { PosterData } from "./types";
 import { generateTemplateHtml } from "./templates/index";
 
 let browserInstance: Browser | null = null;
@@ -19,9 +19,8 @@ async function getBrowser(): Promise<Browser> {
 const MAX_FILE_SIZE = 800 * 1024; // 800KB target for WhatsApp
 const MIN_QUALITY = 80;
 
-export async function renderPoster(data: PosterData): Promise<Buffer> {
-  const { width, height } = FORMAT_DIMENSIONS[data.format];
-  const html = generateTemplateHtml(data);
+export async function renderPoster(data: PosterData, width: number, height: number): Promise<Buffer> {
+  const html = generateTemplateHtml(data, width, height);
 
   const browser = await getBrowser();
   const page = await browser.newPage();
@@ -54,4 +53,32 @@ export async function renderPoster(data: PosterData): Promise<Buffer> {
   } finally {
     await page.close();
   }
+}
+
+export async function renderThumbnails(
+  variants: Array<{ data: PosterData; width: number; height: number }>
+): Promise<string[]> {
+  const browser = await getBrowser();
+  return Promise.all(
+    variants.map(async ({ data, width, height }) => {
+      const thumbW = Math.round(width / 2);
+      const thumbH = Math.round(height / 2);
+      const html = generateTemplateHtml(data, thumbW, thumbH);
+      const page = await browser.newPage();
+      try {
+        await page.setViewport({ width: thumbW, height: thumbH });
+        await page.setContent(html, { waitUntil: "networkidle0", timeout: 15000 });
+        await page.evaluate(() => document.fonts.ready);
+        await new Promise((r) => setTimeout(r, 300));
+        const screenshot = await page.screenshot({ type: "png" }) as Buffer;
+        const jpeg = await sharp(screenshot)
+          .sharpen({ sigma: 0.5 })
+          .jpeg({ quality: 70, mozjpeg: true })
+          .toBuffer();
+        return `data:image/jpeg;base64,${jpeg.toString("base64")}`;
+      } finally {
+        await page.close();
+      }
+    })
+  );
 }
