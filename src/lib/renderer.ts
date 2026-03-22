@@ -54,13 +54,13 @@ export async function renderThumbnails(
   variants: Array<{ data: PosterData; width: number; height: number }>
 ): Promise<string[]> {
   const browser = await getBrowser();
+  const page = await browser.newPage();
   const results: string[] = [];
-  for (const { data, width, height } of variants) {
-    const thumbW = Math.round(width / 2);
-    const thumbH = Math.round(height / 2);
-    const html = generateTemplateHtml(data, thumbW, thumbH);
-    const page = await browser.newPage();
-    try {
+  try {
+    for (const { data, width, height } of variants) {
+      const thumbW = Math.round(width / 2);
+      const thumbH = Math.round(height / 2);
+      const html = generateTemplateHtml(data, thumbW, thumbH);
       await page.setViewport({ width: thumbW, height: thumbH });
       await page.setContent(html, { waitUntil: "domcontentloaded", timeout: 30000 });
       await page.evaluate(() => document.fonts.ready);
@@ -71,9 +71,9 @@ export async function renderThumbnails(
         .jpeg({ quality: 70, mozjpeg: true })
         .toBuffer();
       results.push(`data:image/jpeg;base64,${jpeg.toString("base64")}`);
-    } finally {
-      await page.close();
     }
+  } finally {
+    await page.close();
   }
   return results;
 }
