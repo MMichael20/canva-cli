@@ -232,6 +232,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Start Unsplash search immediately (runs while we process the rest)
+    const imageUrlPromise = searchUnsplash(parsed.imageQuery);
+
     // Sanitize detail values — fix truncated Hebrew (e.g. בע"פ → בע when " breaks JSON)
     // and remove garbage/placeholder values
     parsed.details = parsed.details.filter((d) => {
@@ -255,8 +258,7 @@ export async function POST(request: NextRequest) {
       ...CATEGORY_ADJACENCY[pickedCategory],
     ];
 
-    // Search Unsplash for a hero photo (non-blocking, runs in parallel)
-    const imageUrl = await searchUnsplash(parsed.imageQuery);
+    const imageUrl = await imageUrlPromise;
 
     // Build shared text content (same across all variants)
     const sharedContent = {
