@@ -16,6 +16,9 @@ npm-debug.log*
 # preview output
 preview/
 
+# puppeteer cache
+.cache/
+
 # OS
 .DS_Store
 Thumbs.db
