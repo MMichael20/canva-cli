@@ -33,7 +33,7 @@ export async function renderPoster(data: PosterData, width: number, height: numb
 
   try {
     await page.setViewport({ width, height });
-    await page.setContent(html, { waitUntil: "networkidle0", timeout: 60000 });
+    await page.setContent(html, { waitUntil: "domcontentloaded", timeout: 30000 });
     await page.evaluate(() => document.fonts.ready);
     await new Promise((r) => setTimeout(r, 500));
 
@@ -62,7 +62,7 @@ export async function renderThumbnails(
     const page = await browser.newPage();
     try {
       await page.setViewport({ width: thumbW, height: thumbH });
-      await page.setContent(html, { waitUntil: "networkidle0", timeout: 60000 });
+      await page.setContent(html, { waitUntil: "domcontentloaded", timeout: 30000 });
       await page.evaluate(() => document.fonts.ready);
       await new Promise((r) => setTimeout(r, 300));
       const screenshot = await page.screenshot({ type: "png" }) as Buffer;
