@@ -9,11 +9,19 @@ async function getBrowser(): Promise<Browser> {
   if (browserInstance && browserInstance.connected) {
     return browserInstance;
   }
-  browserInstance = await puppeteer.launch({
-    headless: true,
-    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
-    args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"],
-  });
+  try {
+    browserInstance = await puppeteer.launch({
+      headless: true,
+      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
+      args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"],
+    });
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    throw new Error(
+      `Failed to launch browser. ${msg}\n` +
+      `Ensure Chrome is installed: npx puppeteer browsers install chrome`
+    );
+  }
   return browserInstance;
 }
 
