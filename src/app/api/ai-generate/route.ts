@@ -162,42 +162,53 @@ BAD: "qa engineer", "developer", "accountant", "project manager" — Unsplash ha
 
 Ask yourself: WHERE does this person work? Use that as the query.`;
 
-async function searchUnsplash(query: string, page = 1): Promise<string | null> {
+async function searchUnsplashMultiple(query: string, count = 10): Promise<string[]> {
   const accessKey = process.env.UNSPLASH_ACCESS_KEY;
-  if (!accessKey) return null;
+  if (!accessKey) return [];
 
-  async function tryQuery(q: string, p: number): Promise<string | null> {
+  async function tryQuery(q: string): Promise<string[]> {
     try {
       const res = await fetch(
-        `https://api.unsplash.com/search/photos?query=${encodeURIComponent(q)}&per_page=1&page=${p}&orientation=portrait`,
+        `https://api.unsplash.com/search/photos?query=${encodeURIComponent(q)}&per_page=${count}&orientation=portrait`,
         { headers: { Authorization: `Client-ID ${accessKey}` } }
       );
-      if (!res.ok) return null;
+      if (!res.ok) return [];
       const data = await res.json();
-      return data.results?.[0]?.urls?.regular || null;
+      return (data.results || [])
+        .map((r: { urls?: { regular?: string } }) => r.urls?.regular)
+        .filter(Boolean) as string[];
     } catch {
-      return null;
+      return [];
     }
   }
 
   // Try the full query first
-  const result = await tryQuery(query, page);
-  if (result) return result;
+  let results = await tryQuery(query);
+  if (results.length > 0) return shuffle(results);
 
-  // Fallback: simplify query by taking first 2-3 words (drop overly specific terms)
+  // Fallback: simplify query
   const words = query.split(/\s+/);
   if (words.length > 2) {
-    const simplified = words.slice(0, 2).join(" ");
-    const fallback = await tryQuery(simplified, page);
-    if (fallback) return fallback;
+    results = await tryQuery(words.slice(0, 2).join(" "));
+    if (results.length > 0) return shuffle(results);
   }
 
-  // Last resort: just use the first word (the role/profession)
+  // Last resort: first word only
   if (words.length > 1) {
-    return tryQuery(words[0], page);
+    results = await tryQuery(words[0]);
+    if (results.length > 0) return shuffle(results);
   }
 
-  return null;
+  return [];
+}
+
+function shuffle<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
 }
 
 export async function POST(request: NextRequest) {
@@ -243,7 +254,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Start Unsplash search immediately (runs while we process the rest)
-    const imageUrlPromise = searchUnsplash(parsed.imageQuery);
+    const imageUrlsPromise = searchUnsplashMultiple(parsed.imageQuery, 10);
 
     // Sanitize detail values — fix truncated Hebrew (e.g. בע"פ → בע when " breaks JSON)
     // and remove garbage/placeholder values
@@ -274,9 +285,9 @@ export async function POST(request: NextRequest) {
       ...remaining,
     ];
 
-    const imageUrl = await imageUrlPromise;
+    const imageUrls = await imageUrlsPromise;
 
-    // Build shared text content (same across all variants)
+    // Build shared text content (same across all variants, except image)
     const sharedContent = {
       company,
       title: {
@@ -296,13 +307,12 @@ export async function POST(request: NextRequest) {
         urgent: parsed.badge?.style === "urgent",
       },
       badge: parsed.badge || undefined,
-      imageUrl: imageUrl || undefined,
     };
 
     const now = Date.now();
 
-    // Create variants — one per category with different themes
-    const variants: PosterVariant[] = categoryOrder.map((category) => {
+    // Create variants — each gets a different random image
+    const variants: PosterVariant[] = categoryOrder.map((category, i) => {
       const theme = CATEGORY_THEMES[category];
       const meta = CATEGORY_META[category];
 
@@ -310,6 +320,7 @@ export async function POST(request: NextRequest) {
         ...sharedContent,
         template: category,
         theme: { ...theme },
+        imageUrl: imageUrls[i % imageUrls.length] || undefined,
       };
 
       return {
