@@ -261,11 +261,17 @@ export async function POST(request: NextRequest) {
       ? { name: "", nameEn: "", isConfidential: true }
       : { name: parsed.companyName!, isConfidential: false };
 
-    // Build ordered category list: AI-picked first, then adjacency order
+    // Build ordered category list: AI-picked first, adjacents next, then remaining
     const pickedCategory: TemplateCategory = parsed.category;
+    const adjacents = CATEGORY_ADJACENCY[pickedCategory];
+    const allCategories: TemplateCategory[] = ["standard", "overlay", "split", "neon-dark", "spotlight"];
+    const remaining = allCategories.filter(
+      (c) => c !== pickedCategory && !adjacents.includes(c)
+    );
     const categoryOrder: TemplateCategory[] = [
       pickedCategory,
-      ...CATEGORY_ADJACENCY[pickedCategory],
+      ...adjacents,
+      ...remaining,
     ];
 
     const imageUrl = await imageUrlPromise;

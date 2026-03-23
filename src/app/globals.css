@@ -449,6 +449,29 @@ body {
   color: var(--accent-primary);
 }
 
+/* === Load More Button === */
+.load-more-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 28px;
+  margin: 16px auto;
+  background: rgba(0, 180, 216, 0.08);
+  border: 1px dashed var(--border-accent);
+  border-radius: 12px;
+  color: var(--accent-primary);
+  font-family: "Heebo", sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.load-more-btn:hover {
+  background: rgba(0, 180, 216, 0.15);
+  border-style: solid;
+}
+
 /* === Try Again Button === */
 .poster-grid-actions {
   display: flex;
