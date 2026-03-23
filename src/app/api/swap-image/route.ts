@@ -40,14 +40,14 @@ async function searchUnsplash(query: string, page: number): Promise<string | nul
 
 export async function POST(request: NextRequest) {
   try {
-    const { imageQuery, page, variants } = (await request.json()) as {
+    const { imageQuery, page, posterData } = (await request.json()) as {
       imageQuery: string;
       page: number;
-      variants: Array<{ posterData: PosterData }>;
+      posterData: PosterData;
     };
 
-    if (!imageQuery || !variants?.length) {
-      return NextResponse.json({ error: "Missing imageQuery or variants" }, { status: 400 });
+    if (!imageQuery || !posterData) {
+      return NextResponse.json({ error: "Missing imageQuery or posterData" }, { status: 400 });
     }
 
     const imageUrl = await searchUnsplash(imageQuery, page);
@@ -56,24 +56,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "לא נמצאה תמונה נוספת" }, { status: 404 });
     }
 
-    // Update all variants with the new image
-    const updatedVariants = variants.map((v) => ({
-      ...v,
-      posterData: { ...v.posterData, imageUrl },
-    }));
-
-    // Re-render thumbnails
-    const thumbnailInputs = updatedVariants.map((v) => ({
-      data: v.posterData,
+    // Update posterData with new image and render a single thumbnail
+    const updatedPosterData = { ...posterData, imageUrl };
+    const thumbnails = await renderThumbnails([{
+      data: updatedPosterData,
       width: 1080,
       height: 1920,
-    }));
-
-    const thumbnails = await renderThumbnails(thumbnailInputs);
+    }]);
 
     return NextResponse.json({
       imageUrl,
-      thumbnails,
+      thumbnail: thumbnails[0],
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Unknown error";

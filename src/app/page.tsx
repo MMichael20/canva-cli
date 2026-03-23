@@ -61,8 +61,9 @@ export default function Home() {
     setPendingVariants(null);
   }
 
+  // Swap image for the currently selected variant only
   const handleSwapImage = async () => {
-    if (swapping || !imageQuery || variants.length === 0) return;
+    if (swapping || !imageQuery || !selectedVariant) return;
     setSwapping(true);
 
     const nextPage = imagePage + 1;
@@ -73,7 +74,7 @@ export default function Home() {
         body: JSON.stringify({
           imageQuery,
           page: nextPage,
-          variants: variants.map((v) => ({ posterData: v.posterData })),
+          posterData: selectedVariant.posterData,
         }),
       });
 
@@ -82,27 +83,22 @@ export default function Home() {
         throw new Error(data.error || "שגיאה בהחלפת תמונה");
       }
 
-      const { imageUrl, thumbnails } = await res.json();
+      const { imageUrl, thumbnail } = await res.json();
 
+      // Update the selected variant
+      const updatedVariant: PosterVariant = {
+        ...selectedVariant,
+        posterData: { ...selectedVariant.posterData, imageUrl },
+        thumbnail,
+      };
+      setSelectedVariant(updatedVariant);
+
+      // Also update it in the variants array so the grid reflects the change
       setVariants((prev) =>
-        prev.map((v, i) => ({
-          ...v,
-          posterData: { ...v.posterData, imageUrl },
-          thumbnail: thumbnails[i] || v.thumbnail,
-        }))
+        prev.map((v) =>
+          v.id === selectedVariant.id ? updatedVariant : v
+        )
       );
-
-      // Update selectedVariant if modal is open
-      setSelectedVariant((prev) => {
-        if (!prev) return null;
-        const idx = variants.findIndex((v) => v.id === prev.id);
-        if (idx === -1) return prev;
-        return {
-          ...prev,
-          posterData: { ...prev.posterData, imageUrl },
-          thumbnail: thumbnails[idx] || prev.thumbnail,
-        };
-      });
 
       setImagePage(nextPage);
     } catch (err) {
@@ -146,8 +142,6 @@ export default function Home() {
           variants={variants}
           onSelect={(v) => setSelectedVariant(v)}
           onReset={handleReset}
-          onSwapImage={imageQuery ? handleSwapImage : undefined}
-          swapping={swapping}
         />
       )}
 
@@ -174,6 +168,8 @@ export default function Home() {
         <FormatModal
           variant={selectedVariant}
           onClose={() => setSelectedVariant(null)}
+          onSwapImage={imageQuery ? handleSwapImage : undefined}
+          swapping={swapping}
         />
       )}
     </div>

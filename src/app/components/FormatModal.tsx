@@ -1,11 +1,13 @@
 "use client";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { FormatId, FORMAT_DIMENSIONS } from "@/lib/types";
 import type { PosterVariant } from "@/lib/types";
 
 interface FormatModalProps {
   variant: PosterVariant;
   onClose: () => void;
+  onSwapImage?: () => void;
+  swapping?: boolean;
 }
 
 const FORMAT_ICONS: Record<FormatId, string> = {
@@ -16,12 +18,20 @@ const FORMAT_ICONS: Record<FormatId, string> = {
   "a4-print": "fa-solid fa-print",
 };
 
-export default function FormatModal({ variant, onClose }: FormatModalProps) {
+export default function FormatModal({ variant, onClose, onSwapImage, swapping }: FormatModalProps) {
   const [downloading, setDownloading] = useState<FormatId | null>(null);
   const [previewing, setPreviewing] = useState<FormatId | null>(null);
   const [fullscreenSrc, setFullscreenSrc] = useState<string | null>(null);
-  // Cache rendered format previews so we don't re-render on repeat views
   const previewCache = useRef<Partial<Record<FormatId, string>>>({});
+
+  // Clear preview cache when image changes (variant.posterData.imageUrl)
+  const prevImageUrl = useRef(variant.posterData.imageUrl);
+  useEffect(() => {
+    if (prevImageUrl.current !== variant.posterData.imageUrl) {
+      previewCache.current = {};
+      prevImageUrl.current = variant.posterData.imageUrl;
+    }
+  }, [variant.posterData.imageUrl]);
 
   const handleDownload = async (formatId: FormatId) => {
     setDownloading(formatId);
@@ -50,7 +60,6 @@ export default function FormatModal({ variant, onClose }: FormatModalProps) {
   };
 
   const handlePreview = async (formatId: FormatId) => {
-    // Use cached version if available
     if (previewCache.current[formatId]) {
       setFullscreenSrc(previewCache.current[formatId]!);
       return;
@@ -96,6 +105,22 @@ export default function FormatModal({ variant, onClose }: FormatModalProps) {
               <i className="fa-solid fa-expand" />
             </button>
           </div>
+
+          {/* Swap Image Button */}
+          {onSwapImage && (
+            <button
+              onClick={onSwapImage}
+              disabled={swapping || busy}
+              className="modal-swap-image-btn"
+            >
+              {swapping ? (
+                <div className="loading-spinner" />
+              ) : (
+                <i className="fa-solid fa-image" style={{ marginLeft: "8px" }} />
+              )}
+              {swapping ? "מחליף תמונה..." : "תמונה אחרת"}
+            </button>
+          )}
 
           <h3 className="format-modal-title">בחרו פורמט להורדה</h3>
 

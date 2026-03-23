@@ -7,13 +7,11 @@ interface PosterGridProps {
   variants: PosterVariant[];
   onSelect: (variant: PosterVariant) => void;
   onReset: () => void;
-  onSwapImage?: () => void;
-  swapping?: boolean;
 }
 
 const INITIAL_COUNT = 3;
 
-export default function PosterGrid({ variants, onSelect, onReset, onSwapImage, swapping }: PosterGridProps) {
+export default function PosterGrid({ variants, onSelect, onReset }: PosterGridProps) {
   const [showAll, setShowAll] = useState(false);
 
   const visibleVariants = showAll ? variants : variants.slice(0, INITIAL_COUNT);
@@ -44,20 +42,6 @@ export default function PosterGrid({ variants, onSelect, onReset, onSwapImage, s
         </button>
       )}
       <div className="poster-grid-actions">
-        {onSwapImage && (
-          <button
-            onClick={onSwapImage}
-            disabled={swapping}
-            className="swap-image-btn"
-          >
-            {swapping ? (
-              <div className="loading-spinner" />
-            ) : (
-              <i className="fa-solid fa-image" style={{ marginLeft: "8px" }} />
-            )}
-            {swapping ? "מחליף תמונה..." : "תמונה אחרת"}
-          </button>
-        )}
         <button onClick={onReset} className="try-again-btn">
           <i className="fa-solid fa-arrows-rotate" style={{ marginLeft: "8px" }} />
           נסו שוב עם תיאור אחר
