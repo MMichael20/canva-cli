@@ -71,7 +71,7 @@ export default function ChatInput({ onSubmit, disabled }: ChatInputProps) {
         />
         <button
           onClick={handleSubmit}
-          disabled={!canSubmit || undefined}
+          disabled={!canSubmit}
           className="chat-send-btn"
           aria-label="שלח"
         >
