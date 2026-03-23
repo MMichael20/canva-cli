@@ -1,5 +1,5 @@
 // === Template System ===
-export type TemplateCategory = "standard" | "overlay" | "split";
+export type TemplateCategory = "standard" | "overlay" | "split" | "neon-dark";
 export type TemplateId = TemplateCategory;
 export type FontStackId = "modern" | "bold";
 
@@ -73,7 +73,8 @@ export interface PosterVariant {
 export const CATEGORY_META: Record<TemplateCategory, { label: string; labelHe: string }> = {
   standard:  { label: "Standard",   labelHe: "קלאסי" },
   overlay:   { label: "Overlay",    labelHe: "שכבת תמונה" },
-  split:     { label: "Split",      labelHe: "מפוצל" },
+  split:       { label: "Split",      labelHe: "מפוצל" },
+  "neon-dark":  { label: "Neon Dark",  labelHe: "ניאון כהה" },
 };
 
 export const CATEGORY_THEMES: Record<TemplateCategory, {
@@ -81,12 +82,14 @@ export const CATEGORY_THEMES: Record<TemplateCategory, {
 }> = {
   standard:  { primary: "#2563EB", secondary: "#38BDF8", bgColor: "#2563EB", textColor: "#FFFFFF", fontStack: "modern" },
   overlay:   { primary: "#3A6BC5", secondary: "#A8C4E0", bgColor: "#FFFFFF", textColor: "#1B3A7A", fontStack: "modern" },
-  split:     { primary: "#1E3A5F", secondary: "#4A90D9", bgColor: "#1E3A5F", textColor: "#FFFFFF", fontStack: "modern" },
+  split:       { primary: "#1E3A5F", secondary: "#4A90D9", bgColor: "#1E3A5F", textColor: "#FFFFFF", fontStack: "modern" },
+  "neon-dark":  { primary: "#0A0A1A", secondary: "#00E5FF", bgColor: "#0A0A1A", textColor: "#FFFFFF", fontStack: "bold" },
 };
 
 export const CATEGORY_ADJACENCY: Record<TemplateCategory, TemplateCategory[]> = {
-  standard:  ["overlay", "split"],
-  overlay:   ["standard", "split"],
-  split:     ["standard", "overlay"],
+  standard:    ["overlay", "split"],
+  overlay:     ["standard", "split"],
+  split:       ["standard", "overlay"],
+  "neon-dark": ["overlay", "split"],
 };
 

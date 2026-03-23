@@ -1,6 +1,7 @@
 import { renderStandard } from "../src/lib/templates/standard";
 import { renderOverlay } from "../src/lib/templates/overlay";
 import { renderSplit } from "../src/lib/templates/split";
+import { renderNeonDark } from "../src/lib/templates/neon-dark";
 import { PosterData, FORMAT_DIMENSIONS, FormatId, CATEGORY_THEMES } from "../src/lib/types";
 import puppeteer from "puppeteer";
 import fs from "fs";
@@ -9,8 +10,9 @@ import path from "path";
 const qaJobData: PosterData = {
   template: "standard",
   company: {
-    name: "",
-    isConfidential: true,
+    name: "טכנולוגיות אינפיניטי",
+    nameEn: "Infinity Technologies",
+    isConfidential: false,
   },
   title: {
     he: "בודק/ת תוכנה ידני/ת בכיר/ה",
@@ -25,7 +27,7 @@ const qaJobData: PosterData = {
     { label: "מתודולוגיה", value: "עבודה בסביבת Agile/Scrum" },
   ],
   benefits: ["עבודה היברידית", "קרן השתלמות"],
-  salary: undefined,
+  salary: { display: "₪18,000-25,000 לחודש" },
   contact: { method: "phone", value: "" },
   cta: { text: "לחצו על הלינק למידע נוסף", urgent: false },
   badge: { text: "דרוש/ה!", style: "default" },
@@ -34,8 +36,7 @@ const qaJobData: PosterData = {
 };
 
 const TEMPLATES = [
-  { name: "standard", render: renderStandard, theme: CATEGORY_THEMES.standard },
-  { name: "split", render: renderSplit, theme: CATEGORY_THEMES.split },
+  { name: "neon-dark", render: renderNeonDark, theme: CATEGORY_THEMES["neon-dark"] },
 ] as const;
 
 const FORMATS: FormatId[] = [

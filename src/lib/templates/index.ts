@@ -2,6 +2,7 @@ import type { PosterData, TemplateId } from "../types";
 import { renderStandard } from "./standard";
 import { renderOverlay } from "./overlay";
 import { renderSplit } from "./split";
+import { renderNeonDark } from "./neon-dark";
 
 type TemplateRenderer = (data: PosterData, width: number, height: number) => string;
 
@@ -9,6 +10,7 @@ const TEMPLATE_RENDERERS: Record<TemplateId, TemplateRenderer> = {
   standard: renderStandard,
   overlay: renderOverlay,
   split: renderSplit,
+  "neon-dark": renderNeonDark,
 };
 
 export function generateTemplateHtml(data: PosterData, width: number, height: number): string {

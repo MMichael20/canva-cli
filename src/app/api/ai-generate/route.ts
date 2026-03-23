@@ -13,7 +13,7 @@ import {
 import { renderThumbnails } from "@/lib/renderer";
 
 const AIOutputSchema = z.object({
-  category: z.enum(["standard", "overlay", "split"])
+  category: z.enum(["standard", "overlay", "split", "neon-dark"])
     .describe("Best-fit template category for this role"),
   companyName: z.string().nullable()
     .describe("Company name from the job description, or null if not mentioned / confidential"),
