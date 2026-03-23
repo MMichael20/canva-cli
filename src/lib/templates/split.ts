@@ -3,287 +3,281 @@ import { sharedHead, baseStyles, escapeHtml, hexToRgba } from "./shared";
 
 export function renderSplit(data: PosterData, width: number, height: number): string {
   const baseScale = width / 1080;
+  const aspectRatio = height / width;
   const isLandscape = width > height;
-  const isSquare = !isLandscape && (height / width) < 1.15;
-  const isTall = (height / width) > 1.6;
-
-  // Layout ratios — more header in tall to fill space, less in landscape
-  const headerPct = isLandscape ? 36 : isSquare ? 30 : isTall ? 28 : 26;
-  const splitPct = 100 - headerPct;
-  const photoWidthPct = isLandscape ? 42 : isSquare ? 40 : 40;
-
-  // Curve: photo's right edge bulges into content — bolder arc
-  const curveDepth = Math.round(85 * baseScale);
-  const splitH = Math.round(height * splitPct / 100);
-  const halfSplitH = Math.round(splitH / 2);
+  const isSquare = !isLandscape && aspectRatio < 1.15;
+  const isTall = aspectRatio > 1.6;
 
   // Scale
-  const contentItems = 200 + data.details.length * 50
-    + 70 /* spotlight hero */
-    + (data.salary?.display && data.spotlight.type !== "salary" ? 45 : 0)
-    + (data.benefits?.length ? 45 : 0);
-  const scale = Math.min(baseScale, (splitH / contentItems) * 0.85);
-  // Taller formats get boosted scale so content fills the space
-  const tallBoost = isTall ? 1.15 : 1;
-  const s = scale * tallBoost;
+  const contentRef = 420 + data.details.length * 55
+    + 80 /* spotlight */
+    + (data.benefits?.length ? 50 : 0);
+  const scale = Math.min(baseScale, (height / contentRef) * 0.88);
 
   const primary = data.theme.primary;
   const accent = data.theme.secondary;
-  const darkPrimary = adjustBrightness(primary, -35);
   const ctaText = data.cta?.text || "לחצו על הלינק למידע נוסף";
-  const detailTextColor = adjustBrightness(primary, -50);
 
-  // ══════════════════════════════════════════
-  // HEADER — full width, centered
-  // ══════════════════════════════════════════
-  const headerZone = `
+  // === FULL-BLEED PHOTO BACKGROUND ===
+  const photoBg = data.imageUrl ? `
+    <img src="${escapeHtml(data.imageUrl)}" style="
+      position: absolute; inset: 0;
+      width: 100%; height: 100%;
+      object-fit: cover;
+      z-index: 0;
+    " />
+    <!-- Gradient overlay — photo visible top, smooth blend into color -->
     <div style="
-      width: 100%;
-      height: ${headerPct}%;
-      background: linear-gradient(135deg, ${adjustBrightness(primary, 12)} 0%, ${primary} 60%, ${darkPrimary} 100%);
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      padding: ${14 * s}px ${34 * s}px;
+      position: absolute; inset: 0;
+      background: linear-gradient(
+        ${isLandscape ? '270deg' : '180deg'},
+        transparent 0%,
+        rgba(0,0,0,0.08) ${isLandscape ? '25%' : '20%'},
+        ${hexToRgba(primary, 0.65)} ${isLandscape ? '45%' : '38%'},
+        ${hexToRgba(primary, 0.92)} ${isLandscape ? '60%' : '50%'},
+        ${primary} ${isLandscape ? '75%' : '62%'}
+      );
+      z-index: 1;
+    "></div>
+  ` : `
+    <div style="
+      position: absolute; inset: 0;
+      background: linear-gradient(135deg, ${primary}, ${adjustBrightness(primary, -30)});
+      z-index: 0;
+    "></div>
+  `;
+
+  // === DECORATIVE ACCENT LINE ===
+  const accentLine = `
+    <div style="
+      width: ${80 * scale}px;
+      height: ${4 * scale}px;
+      background: linear-gradient(to right, ${accent}, #F59E0B);
+      border-radius: ${2 * scale}px;
+      margin-bottom: ${16 * scale}px;
+      margin-top: ${4 * scale}px;
+    "></div>
+  `;
+
+  // === BADGE ===
+  const badgeHtml = data.badge ? `
+    <div style="
+      display: inline-block;
+      background: rgba(255,255,255,0.15);
+      backdrop-filter: blur(${4 * scale}px);
+      border: ${1.5 * scale}px solid rgba(255,255,255,0.25);
+      color: white;
+      padding: ${9 * scale}px ${24 * scale}px;
+      border-radius: ${22 * scale}px;
+      font-size: ${18 * scale}px;
+      font-weight: 800;
+      margin-bottom: ${12 * scale}px;
       direction: rtl;
-      position: relative;
-      z-index: 3;
-    ">
-      <!-- Accent top line -->
-      <div style="
-        position: absolute;
-        top: 0;
-        left: 8%;
-        right: 8%;
-        height: ${4 * s}px;
-        background: linear-gradient(to right, transparent, ${accent}, transparent);
-        border-radius: ${2 * s}px;
-      "></div>
+    ">${escapeHtml(data.badge.text)}</div>
+  ` : "";
 
-      ${data.badge ? `
-        <div style="margin-bottom: ${8 * s}px;">
-          <span style="
-            background: #F59E0B;
-            color: #1A2A3A;
-            padding: ${6 * s}px ${20 * s}px;
-            border-radius: ${20 * s}px;
-            font-size: ${16 * s}px;
-            font-weight: 800;
-            display: inline-block;
-            direction: rtl;
-          ">${escapeHtml(data.badge.text)}</span>
-        </div>
-      ` : ""}
+  // === COMPANY ===
+  const companyHtml = !data.company.isConfidential ? `
+    <div style="
+      font-size: ${18 * scale}px;
+      font-weight: 600;
+      color: rgba(255,255,255,0.6);
+      letter-spacing: ${2 * scale}px;
+      margin-bottom: ${10 * scale}px;
+      direction: rtl;
+    ">${escapeHtml(data.company.name)}</div>
+  ` : "";
 
-      <div style="
-        font-size: ${46 * s}px;
-        font-weight: 800;
-        color: white;
-        line-height: 1.15;
-        text-align: center;
-        direction: rtl;
-      ">${escapeHtml(data.title.he)}</div>
+  // === TITLE ===
+  const titleSize = isLandscape ? 42 : isSquare ? 46 : 54;
+  const titleHtml = `
+    <div style="
+      font-size: ${titleSize * scale}px;
+      font-weight: 900;
+      color: white;
+      line-height: 1.15;
+      margin-bottom: ${12 * scale}px;
+      direction: rtl;
+    ">${escapeHtml(data.title.he)}</div>
+  `;
 
-      <!-- Company name in header — visible -->
+  // === SPOTLIGHT ===
+  const spotlightSize = isLandscape ? 34 : isSquare ? 38 : 46;
+  const spotlightHtml = (() => {
+    const t = data.spotlight.type;
+    const icon = t === "salary"
+      ? `<i class="fa-solid fa-shekel-sign" style="font-size: ${Math.round(spotlightSize * 0.7) * scale}px; margin-left: ${10 * scale}px;"></i>`
+      : t === "benefit"
+      ? `<i class="fa-solid fa-star" style="font-size: ${Math.round(spotlightSize * 0.6) * scale}px; margin-left: ${10 * scale}px;"></i>`
+      : "";
+    const bg = t === "salary"
+      ? "linear-gradient(135deg, #F59E0B, #D97706)"
+      : t === "benefit"
+      ? "linear-gradient(135deg, #059669, #047857)"
+      : `linear-gradient(135deg, ${accent}, ${adjustBrightness(accent, -20)})`;
+    const color = t === "salary" ? "#1A1A2E" : "white";
+
+    return `
       <div style="
-        margin-top: ${10 * s}px;
-        font-size: ${14 * s}px;
-        color: rgba(255,255,255,0.45);
-        direction: rtl;
+        background: ${bg};
+        border-radius: ${14 * scale}px;
+        padding: ${18 * scale}px ${26 * scale}px;
+        margin-bottom: ${18 * scale}px;
+        box-shadow: 0 ${6 * scale}px ${20 * scale}px rgba(0,0,0,0.25);
       ">
-        ${!data.company.isConfidential && data.company.name
-          ? escapeHtml(data.company.name)
-          : "חברה מובילה בתחום"
-        }
+        <div style="
+          font-size: ${spotlightSize * scale}px;
+          font-weight: 900;
+          color: ${color};
+          text-align: center;
+          direction: rtl;
+          line-height: 1.2;
+        ">${icon}${escapeHtml(data.spotlight.text)}</div>
       </div>
-    </div>
-  `;
+    `;
+  })();
 
-  // ══════════════════════════════════════════
-  // PHOTO — left side, clip-path curves right
-  // ══════════════════════════════════════════
-  const photoPxW = Math.round(width * photoWidthPct / 100) + curveDepth;
-  const clipPath = `path('M 0 0 L ${photoPxW - curveDepth} 0 Q ${photoPxW} ${halfSplitH} ${photoPxW - curveDepth} ${splitH} L 0 ${splitH} Z')`;
-
-  const photoZone = `
+  // === BENEFITS (glass pills) ===
+  const benefitsHtml = (data.benefits && data.benefits.length > 0) ? `
     <div style="
-      width: ${photoWidthPct}%;
-      height: 100%;
-      position: relative;
-      overflow: visible;
-      flex-shrink: 0;
-      margin-right: ${-curveDepth}px;
-      clip-path: ${clipPath};
-      z-index: 2;
+      display: flex;
+      flex-wrap: wrap;
+      gap: ${10 * scale}px;
+      margin-bottom: ${16 * scale}px;
+      direction: rtl;
     ">
-      ${data.imageUrl
-        ? `<img src="${escapeHtml(data.imageUrl)}" style="width: calc(100% + ${curveDepth}px); height: 100%; object-fit: cover; display: block;" />`
-        : `<div style="width: calc(100% + ${curveDepth}px); height: 100%; background: linear-gradient(145deg, ${hexToRgba(accent, 0.4)}, ${hexToRgba(primary, 0.25)});"></div>`
-      }
+      ${data.benefits.map((b) => `
+        <div style="
+          background: rgba(255,255,255,0.15);
+          backdrop-filter: blur(${6 * scale}px);
+          border: ${1 * scale}px solid rgba(255,255,255,0.2);
+          color: white;
+          padding: ${10 * scale}px ${20 * scale}px;
+          border-radius: ${22 * scale}px;
+          font-size: ${17 * scale}px;
+          font-weight: 700;
+        "><i class="fa-solid fa-check" style="font-size: ${12 * scale}px; margin-left: ${6 * scale}px; opacity: 0.7;"></i>${escapeHtml(b)}</div>
+      `).join("")}
+    </div>
+  ` : "";
 
-      <!-- Very light overlay — only bottom edge for text -->
+  // === DETAILS (clean list with accent dots) ===
+  const maxDetails = isLandscape ? 3 : isSquare ? 3 : Math.min(data.details.length, 4);
+  const detailItems = data.details.slice(0, maxDetails).map((d, i) => {
+    const dotColor = i % 2 === 0 ? accent : '#F59E0B';
+    return `
+    <div style="
+      padding: ${10 * scale}px ${16 * scale}px;
+      margin-bottom: ${6 * scale}px;
+      background: rgba(255,255,255,${i % 2 === 0 ? '0.07' : '0.04'});
+      border-radius: ${10 * scale}px;
+      border-right: ${3 * scale}px solid ${hexToRgba(dotColor, 0.4)};
+      display: flex;
+      align-items: center;
+      gap: ${10 * scale}px;
+      direction: rtl;
+    ">
       <div style="
-        position: absolute;
-        inset: 0;
-        background: linear-gradient(to bottom, transparent 70%, rgba(0,0,0,0.25) 100%);
-        pointer-events: none;
+        width: ${8 * scale}px;
+        height: ${8 * scale}px;
+        border-radius: 50%;
+        background: ${dotColor};
+        flex-shrink: 0;
       "></div>
-    </div>
-  `;
-
-  // ══════════════════════════════════════════
-  // CONTENT — right side
-  // ══════════════════════════════════════════
-
-  // Benefits — warm amber/gold cards, clearly different from requirements
-  const benefitsHtml = (data.benefits && data.benefits.length > 0)
-    ? `
-      <div style="margin-bottom: ${10 * s}px;">
-        ${data.benefits.map((b) => `
-          <div style="
-            background: linear-gradient(135deg, #F59E0B, #D97706);
-            border-radius: ${10 * s}px;
-            padding: ${12 * s}px ${18 * s}px;
-            text-align: center;
-            margin-bottom: ${8 * s}px;
-            box-shadow: 0 ${2 * s}px ${8 * s}px rgba(245,158,11,0.3);
-          ">
-            <span style="
-              font-size: ${19 * s}px;
-              color: #1A2A3A;
-              font-weight: 700;
-              direction: rtl;
-              display: block;
-            "><i class="fa-solid fa-star" style="margin-left: ${6 * s}px; font-size: ${14 * s}px;"></i>${escapeHtml(b)}</span>
-          </div>
-        `).join("")}
-      </div>
-    ` : "";
-
-  // Detail bars — white/light, clearly requirements
-  const detailBars = data.details.map((d) => `
-    <div style="
-      background: rgba(255,255,255,0.88);
-      border-radius: ${8 * s}px;
-      padding: ${11 * s}px ${16 * s}px;
-      text-align: right;
-      margin-bottom: ${7 * s}px;
-    ">
       <span style="
-        font-size: ${18 * s}px;
-        color: ${detailTextColor};
+        font-size: ${17 * scale}px;
+        color: rgba(255,255,255,0.88);
         font-weight: 600;
-        direction: rtl;
-        display: block;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
       ">${escapeHtml(d.value)}</span>
-    </div>
-  `).join("");
+    </div>`;
+  }).join("");
 
-  // Spotlight hero
-  const spotlightBg =
-    data.spotlight.type === "salary"  ? "linear-gradient(135deg, #F59E0B, #D97706)" :
-    data.spotlight.type === "benefit" ? "#059669" :
-    /* tagline */                       accent;
-  const spotlightColor =
-    data.spotlight.type === "salary" ? "#1A2A3A" : "#FFFFFF";
-  const spotlightIcon =
-    data.spotlight.type === "salary"  ? `<i class="fa-solid fa-shekel-sign" style="margin-left: ${8 * s}px; font-size: ${22 * s}px;"></i>` :
-    data.spotlight.type === "benefit" ? `<i class="fa-solid fa-star" style="margin-left: ${8 * s}px; font-size: ${22 * s}px;"></i>` :
-    "";
-  const spotlightHtml = `
-    <div style="
-      background: ${spotlightBg};
-      border-radius: ${12 * s}px;
-      padding: ${16 * s}px ${20 * s}px;
-      text-align: center;
-      margin-bottom: ${10 * s}px;
-      box-shadow: 0 ${3 * s}px ${12 * s}px rgba(0,0,0,0.2);
-    ">
-      <span style="
-        font-size: ${30 * s}px;
-        font-weight: 800;
-        color: ${spotlightColor};
-        direction: rtl;
-        display: block;
-        line-height: 1.2;
-      ">${spotlightIcon}${escapeHtml(data.spotlight.text)}</span>
+  const detailsCard = `
+    <div style="margin-bottom: ${14 * scale}px;">
+      ${detailItems}
     </div>
   `;
 
-  // Salary — only shown when spotlight is NOT already salary-type
-  const salaryHtml = (data.salary?.display && data.spotlight.type !== "salary")
-    ? `<div style="
-        background: rgba(255,255,255,0.88);
-        border-radius: ${8 * s}px;
-        padding: ${11 * s}px ${16 * s}px;
-        text-align: center;
-        margin-bottom: ${8 * s}px;
-      ">
-        <i class="fa-solid fa-shekel-sign" style="font-size: ${14 * s}px; color: #F59E0B;"></i>
-        <span style="font-size: ${18 * s}px; font-weight: 800; color: ${detailTextColor}; margin-right: ${5 * s}px;">${escapeHtml(data.salary.display)}</span>
-      </div>`
-    : "";
-
-  // CTA — amber/gold to match badge and benefits (#5)
+  // === CTA ===
   const ctaButton = `
     <div style="
-      background: linear-gradient(135deg, #F59E0B, #D97706);
-      color: #1A2A3A;
-      padding: ${16 * s}px ${20 * s}px;
-      border-radius: ${12 * s}px;
-      font-size: ${20 * s}px;
+      background: linear-gradient(135deg, ${accent}, ${adjustBrightness(accent, -15)});
+      color: white;
+      padding: ${18 * scale}px ${26 * scale}px;
+      border-radius: ${14 * scale}px;
+      font-size: ${22 * scale}px;
       font-weight: 800;
       text-align: center;
-      box-shadow: 0 ${4 * s}px ${16 * s}px rgba(245,158,11,0.35);
+      box-shadow: 0 ${6 * scale}px ${24 * scale}px ${hexToRgba(accent, 0.3)};
       width: 100%;
     ">
-      <i class="fa-solid fa-link" style="margin-left: ${8 * s}px;"></i>
+      <i class="fa-solid fa-link" style="margin-left: ${8 * scale}px;"></i>
       ${escapeHtml(ctaText)}
     </div>
   `;
 
+  // === FOOTER ===
   const footer = `
     <div style="
       text-align: center;
-      font-size: ${11 * s}px;
-      color: rgba(255,255,255,0.45);
-      margin-top: ${6 * s}px;
-    ">Personal Hire - סוכנות גיוס עובדים</div>
+      font-size: ${11 * scale}px;
+      color: rgba(255,255,255,0.3);
+      margin-top: ${8 * scale}px;
+    ">*התהליך מנוהל ע"י Personal Hire - סוכנות גיוס עובדים</div>
   `;
 
-  const pad = 22 * s;
-  const contentZone = `
+  const pad = isLandscape ? 36 * scale : 34 * scale;
+
+  // === LANDSCAPE: photo left half, content right half ===
+  if (isLandscape) {
+    return `<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  ${sharedHead()}
+  <style>
+    ${baseStyles(data, width, height, scale)}
+    body { background: ${primary}; }
+  </style>
+</head>
+<body>
+  <div style="width: 100%; height: 100%; position: relative; overflow: hidden;">
+    ${photoBg}
+
     <div style="
-      flex: 1;
-      height: 100%;
-      background: linear-gradient(180deg, ${primary} 0%, ${darkPrimary} 100%);
+      position: absolute; inset: 0;
       display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      padding: ${16 * s}px ${pad}px ${14 * s}px ${pad}px;
-      direction: rtl;
-      z-index: 1;
+      flex-direction: row-reverse;
+      z-index: 2;
     ">
-      <div>
-        ${benefitsHtml}
+      <!-- Content side (right in RTL) -->
+      <div style="
+        width: 55%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        padding: ${16 * scale}px ${pad}px;
+        direction: rtl;
+        gap: ${4 * scale}px;
+      ">
+        ${badgeHtml}
+        ${companyHtml}
+        ${titleHtml}
+        ${accentLine}
         ${spotlightHtml}
-        ${detailBars}
-        ${salaryHtml}
-      </div>
-      <div>
+        ${benefitsHtml}
         ${ctaButton}
-        ${footer}
       </div>
     </div>
-  `;
+  </div>
+</body>
+</html>`;
+  }
 
-  // ══════════════════════════════════════════
-  // ASSEMBLY
-  // ══════════════════════════════════════════
+  // === PORTRAIT / SQUARE: photo top, content bottom with overlap ===
   return `<!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
@@ -294,23 +288,36 @@ export function renderSplit(data: PosterData, width: number, height: number): st
   </style>
 </head>
 <body>
-  <div style="
-    width: 100%;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-  ">
-    ${headerZone}
+  <div style="width: 100%; height: 100%; position: relative; overflow: hidden;">
+    ${photoBg}
+
+    <!-- Content panel — positioned at bottom -->
     <div style="
-      width: 100%;
-      height: ${splitPct}%;
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      ${isTall ? 'top: 36%;' : isSquare ? 'top: 22%;' : 'top: 30%;'}
+      z-index: 2;
       display: flex;
-      flex-direction: row;
-      direction: ltr;
-      overflow: hidden;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding: ${20 * scale}px ${pad}px ${22 * scale}px;
+      direction: rtl;
+      gap: ${6 * scale}px;
     ">
-      ${photoZone}
-      ${contentZone}
+      <div>
+        ${badgeHtml}
+        ${companyHtml}
+        ${titleHtml}
+        ${accentLine}
+        ${spotlightHtml}
+        ${benefitsHtml}
+        ${detailsCard}
+      </div>
+
+      <div>
+        ${ctaButton}
+        ${footer}
+      </div>
     </div>
   </div>
 </body>
