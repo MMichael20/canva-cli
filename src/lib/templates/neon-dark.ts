@@ -196,7 +196,7 @@ export function renderNeonDark(data: PosterData, width: number, height: number):
   ` : "";
 
   // === JOB TITLE ===
-  const titleSize = isLandscape ? 44 : isSquare ? 50 : 56;
+  const titleSize = isLandscape ? 50 : isSquare ? 56 : 66;
   const titleHtml = `
     <div style="
       font-size: ${titleSize * scale}px;
@@ -209,9 +209,9 @@ export function renderNeonDark(data: PosterData, width: number, height: number):
       text-align: ${isLandscape ? 'right' : 'center'};
     ">${escapeHtml(data.title.he)}</div>
     ${data.jobTitle ? `<div style="
-      font-size: ${18 * scale}px;
+      font-size: ${30 * scale}px;
       font-weight: 600;
-      color: rgba(255,255,255,0.45);
+      color: rgba(255,255,255,0.7);
       direction: rtl;
       margin-top: ${4 * scale}px;
       text-align: ${isLandscape ? 'right' : 'center'};
@@ -556,9 +556,9 @@ export function renderNeonDark(data: PosterData, width: number, height: number):
         direction: rtl;
       ">${escapeHtml(data.title.he)}</div>
       ${data.jobTitle ? `<div style="
-        font-size: ${18 * ls}px;
+        font-size: ${28 * ls}px;
         font-weight: 600;
-        color: rgba(255,255,255,0.45);
+        color: rgba(255,255,255,0.7);
         direction: rtl;
         margin-top: ${4 * ls}px;
       ">${escapeHtml(data.jobTitle)}</div>` : ''}

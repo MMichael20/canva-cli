@@ -138,7 +138,7 @@ export function renderOverlay(data: PosterData, width: number, height: number): 
       background: linear-gradient(135deg, #FFFFFF, ${hexToRgba(lightBlue, 0.15)});
       color: ${navy};
       padding: ${16*scale*sp}px ${36*scale*sp}px;
-      font-size: ${38*scale}px;
+      font-size: ${46*scale}px;
       font-weight: 800;
       text-align: center;
       direction: rtl;
@@ -276,7 +276,7 @@ export function renderOverlay(data: PosterData, width: number, height: number): 
       ${data.jobTitle ? `<div style="
         background: rgba(255,255,255,0.15);
         color: ${navy};
-        font-size: ${22*scale}px;
+        font-size: ${30*scale}px;
         font-weight: 600;
         text-align: center;
         direction: rtl;

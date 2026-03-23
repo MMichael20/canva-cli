@@ -148,7 +148,7 @@ export function renderSpotlight(data: PosterData, width: number, height: number)
   ` : "";
 
   // === JOB TITLE ===
-  const titleSize = isLandscape ? 40 : isSquare ? 44 : 50;
+  const titleSize = isLandscape ? 46 : isSquare ? 52 : 60;
   const titleHtml = `
     <div style="
       font-size: ${titleSize * scale}px;
@@ -160,9 +160,9 @@ export function renderSpotlight(data: PosterData, width: number, height: number)
       text-align: center;
     ">${escapeHtml(data.title.he)}</div>
     ${data.jobTitle ? `<div style="
-      font-size: ${20 * scale}px;
+      font-size: ${32 * scale}px;
       font-weight: 600;
-      color: ${hexToRgba(darkText, 0.5)};
+      color: ${hexToRgba(darkText, 0.7)};
       direction: rtl;
       text-align: center;
       margin-top: ${6 * scale}px;

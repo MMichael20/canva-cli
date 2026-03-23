@@ -298,15 +298,15 @@ export function renderStandard(data: PosterData, width: number, height: number):
           margin-bottom: ${28 * scale}px;
         ">
           <div style="
-            font-size: ${52 * scale}px;
+            font-size: ${62 * scale}px;
             font-weight: 800;
             color: white;
             line-height: 1.15;
           ">${escapeHtml(data.title.he)}</div>
           ${data.jobTitle ? `<div style="
-            font-size: ${20 * scale}px;
+            font-size: ${34 * scale}px;
             font-weight: 600;
-            color: rgba(255,255,255,0.65);
+            color: rgba(255,255,255,0.8);
             direction: rtl;
             text-align: center;
             margin-top: ${6 * scale}px;

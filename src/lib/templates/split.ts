@@ -89,7 +89,7 @@ export function renderSplit(data: PosterData, width: number, height: number): st
   ` : "";
 
   // === TITLE ===
-  const titleSize = isLandscape ? 42 : isSquare ? 46 : 54;
+  const titleSize = isLandscape ? 48 : isSquare ? 54 : 64;
   const titleHtml = `
     <div style="
       font-size: ${titleSize * scale}px;
@@ -100,9 +100,9 @@ export function renderSplit(data: PosterData, width: number, height: number): st
       direction: rtl;
     ">${escapeHtml(data.title.he)}</div>
     ${data.jobTitle ? `<div style="
-      font-size: ${20 * scale}px;
+      font-size: ${32 * scale}px;
       font-weight: 600;
-      color: rgba(255,255,255,0.65);
+      color: rgba(255,255,255,0.8);
       direction: rtl;
       margin-top: ${6 * scale}px;
     ">${escapeHtml(data.jobTitle)}</div>` : ''}
