@@ -96,7 +96,16 @@ export default function FormatModal({ variant, onClose, onSwapImage, swapping }:
           </button>
 
           <div className="format-modal-preview" style={{ position: "relative" }}>
-            <img src={variant.thumbnail} alt={variant.posterData.title.he} />
+            <img
+              src={variant.thumbnail}
+              alt={variant.posterData.title.he}
+              style={{ opacity: swapping ? 0.4 : 1 }}
+            />
+            {swapping && (
+              <div className="preview-loading-overlay">
+                <div className="loading-spinner" />
+              </div>
+            )}
             <button
               className="fullscreen-btn"
               onClick={() => setFullscreenSrc(variant.thumbnail)}
