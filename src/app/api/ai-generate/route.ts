@@ -18,9 +18,11 @@ const AIOutputSchema = z.object({
   companyName: z.string().nullable()
     .describe("Company name from the job description, or null if not mentioned / confidential"),
   title: z.object({
-    he: z.string().describe("Hebrew headline: job title (max 4 words) if company known, or creative industry+role headline (6-12 words) if company is null"),
+    he: z.string().describe("Emotional Hebrew hook headline — an ad-style call-to-action or compelling statement, NOT a dry job title"),
     en: z.string().nullable().describe("English job title for tech roles (e.g. 'QA Engineer'), null for non-tech"),
   }),
+  jobTitle: z.string()
+    .describe("The actual job role name in Hebrew, e.g. 'בודק/ת תוכנה בכיר/ה' — shown as secondary text below the hook"),
   spotlight: z.object({
     text: z.string().describe("The single most compelling hook for this job — salary if impressive, otherwise a punchy Hebrew tagline or standout benefit"),
     type: z.enum(["salary", "tagline", "benefit"]).describe("What kind of hook this is, so templates can style it appropriately"),
@@ -41,9 +43,11 @@ const AIOutputSchema = z.object({
     .describe("1-2 English words for Unsplash: the work ENVIRONMENT, not the job title"),
 });
 
-const SYSTEM_PROMPT = `You are a Hebrew recruitment copywriter. You receive a Hebrew job description and produce structured JSON for a recruitment poster. You do NOT design the poster — you only produce the content fields below.
+const SYSTEM_PROMPT = `You are a Hebrew advertising copywriter specializing in recruitment ads for social media. You write PROMOTIONAL content — not job listings. Think Instagram sponsored posts, Facebook ads, WhatsApp story promotions. Every line should make someone stop scrolling.
 
-Before generating anything, read the full description and identify: What makes THIS role uniquely attractive? The tech stack? Team culture? Career growth? A specific perk? This hook drives your headline, subtitle, and detail ordering.
+Before generating anything, read the full description and identify: What makes THIS role uniquely attractive? The tech stack? Team culture? Career growth? A specific perk? This hook drives your headline, spotlight, and detail ordering.
+
+Your output is for PAID SOCIAL MEDIA ADS — write like a marketer, not an HR manager.
 
 === HARD RULES (violating any of these is a critical failure) ===
 
@@ -67,26 +71,41 @@ The hiring company's name, extracted verbatim from the description.
 • Never invent or guess a company name.
 
 ── title.he (string) ──
-The poster headline. Behavior depends on whether a company name exists.
+The poster's BIG HEADLINE — an emotional, ad-style hook. NOT a job title. This is the text that makes someone stop scrolling. Max 8 Hebrew words.
 
-When companyName is present — a clean job title, max 4 words:
-  GOOD: "בודק/ת תוכנה בכיר/ה"
-  GOOD: "מנהל/ת פרויקטים"
-  BAD: "בודק/ת תוכנה בכיר/ה עם ניסיון" — too long, detail belongs elsewhere
+You decide the style based on what works best for the specific role:
 
-When companyName is null — a creative headline merging industry + role, 6-12 words:
-  GOOD: "חברת סטארטאפ בתחום הבריאות הדיגיטלית מגייסת ארכיטקט/ית ענן"
-  GOOD: "ארגון פיננסי בינלאומי מחפש/ת ראש צוות פיתוח"
-  BAD: "משרד מוביל מחפש עובד/ת" — "משרד" is vague, "עובד" is meaningless
-  Rules for null-company headlines:
-  - Vary structure. Don't always use "חברת X מחפשת Y".
-  - Use specific descriptors: סטארטאפ, חברת תוכנה, רשת קמעונאית — never "משרד" or "מקום".
-  - Vary adjectives: בצמיחה, חדשנית, בינלאומית, מבוססת — don't default to "מובילה".
-  - Always use gender-inclusive forms: מפתח/ת, מהנדס/ת, בודק/ת.
+Style 1 — Direct call-to-action:
+  GOOD: "אנחנו מחפשים אותך!"
+  GOOD: "מוכנים לצעד הבא בקריירה?"
+  GOOD: "הצטרפו למהפכה שלנו!"
+
+Style 2 — Role-specific hook:
+  GOOD: "מי יוביל את הצוות הטכנולוגי שלנו?"
+  GOOD: "את/ה הבודק/ת שהמוצר שלנו צריך"
+  GOOD: "מחפשים ארכיטקט/ית ענן שישנה את הכל"
+
+Style 3 — Value proposition:
+  GOOD: "הקריירה שתמיד חלמת עליה"
+  GOOD: "הזדמנות שלא חוזרת פעמיים"
+  GOOD: "כאן עושים את העתיד"
+
+BAD (too dry, sounds like a job listing):
+  "בודק/ת תוכנה בכיר/ה" — this is the job title, not a hook
+  "דרוש/ה מנהל/ת פרויקטים" — boring, no emotion
+  "משרה מלאה באזור המרכז" — logistic detail
+
+Pick the style that fits the description best. If the company is well-known, you can reference it: "הצטרפו לגוגל!" If the role is unique, highlight it. If the benefits are amazing, tease them. Use your judgment.
 
 ── title.en (string | null) ──
-English job title for tech roles only (e.g. "QA Engineer", "DevOps Engineer", "Full Stack Developer").
-Set to null for non-tech roles (e.g. accountant, warehouse worker, sales).
+Set to null. We no longer display English titles.
+
+── jobTitle (string) ──
+The actual job role name in Hebrew. This is displayed as SECONDARY text below the hook headline. Keep it clean and factual — 2-4 words.
+GOOD: "בודק/ת תוכנה בכיר/ה"
+GOOD: "מנהל/ת פרויקטים"
+GOOD: "מפתח/ת Full Stack"
+Always use gender-inclusive forms: מפתח/ת, מהנדס/ת, בודק/ת.
 
 ── spotlight (object) ──
 The single biggest visual element on the poster — the hook that makes someone stop scrolling. Contains:
@@ -294,6 +313,7 @@ export async function POST(request: NextRequest) {
         he: parsed.title.he,
         en: parsed.title.en || undefined,
       },
+      jobTitle: parsed.jobTitle,
       spotlight: parsed.spotlight,
       details: parsed.details,
       benefits: parsed.benefits || undefined,

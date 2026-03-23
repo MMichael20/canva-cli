@@ -273,6 +273,17 @@ export function renderOverlay(data: PosterData, width: number, height: number): 
       ${badgeHtml}
       ${companyBanner}
       ${titleBanner}
+      ${data.jobTitle ? `<div style="
+        background: rgba(255,255,255,0.15);
+        color: ${navy};
+        font-size: ${22*scale}px;
+        font-weight: 600;
+        text-align: center;
+        direction: rtl;
+        margin-top: ${8*scale}px;
+        padding: ${10*scale}px ${24*scale}px;
+        backdrop-filter: blur(${8*scale}px);
+      ">${escapeHtml(data.jobTitle)}</div>` : ""}
       ${spotlightHtml}
       ${subHeadline}
     </div>

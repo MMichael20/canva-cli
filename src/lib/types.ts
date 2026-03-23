@@ -31,6 +31,7 @@ export interface PosterData {
     he: string;
     en?: string;
   };
+  jobTitle: string;
   spotlight: {
     text: string;
     type: "salary" | "tagline" | "benefit";

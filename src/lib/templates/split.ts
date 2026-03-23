@@ -99,6 +99,13 @@ export function renderSplit(data: PosterData, width: number, height: number): st
       margin-bottom: ${12 * scale}px;
       direction: rtl;
     ">${escapeHtml(data.title.he)}</div>
+    ${data.jobTitle ? `<div style="
+      font-size: ${20 * scale}px;
+      font-weight: 600;
+      color: rgba(255,255,255,0.65);
+      direction: rtl;
+      margin-top: ${6 * scale}px;
+    ">${escapeHtml(data.jobTitle)}</div>` : ''}
   `;
 
   // === SPOTLIGHT ===

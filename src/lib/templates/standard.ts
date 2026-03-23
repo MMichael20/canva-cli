@@ -303,6 +303,14 @@ export function renderStandard(data: PosterData, width: number, height: number):
             color: white;
             line-height: 1.15;
           ">${escapeHtml(data.title.he)}</div>
+          ${data.jobTitle ? `<div style="
+            font-size: ${20 * scale}px;
+            font-weight: 600;
+            color: rgba(255,255,255,0.65);
+            direction: rtl;
+            text-align: center;
+            margin-top: ${6 * scale}px;
+          ">${escapeHtml(data.jobTitle)}</div>` : ""}
         </div>
 
         <!-- Spotlight -->

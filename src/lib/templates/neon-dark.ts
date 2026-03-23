@@ -208,6 +208,14 @@ export function renderNeonDark(data: PosterData, width: number, height: number):
       direction: rtl;
       text-align: ${isLandscape ? 'right' : 'center'};
     ">${escapeHtml(data.title.he)}</div>
+    ${data.jobTitle ? `<div style="
+      font-size: ${18 * scale}px;
+      font-weight: 600;
+      color: rgba(255,255,255,0.45);
+      direction: rtl;
+      margin-top: ${4 * scale}px;
+      text-align: ${isLandscape ? 'right' : 'center'};
+    ">${escapeHtml(data.jobTitle)}</div>` : ''}
   `;
 
   // === BENEFITS (refined cards) ===
@@ -547,6 +555,13 @@ export function renderNeonDark(data: PosterData, width: number, height: number):
         margin-bottom: ${10 * ls}px;
         direction: rtl;
       ">${escapeHtml(data.title.he)}</div>
+      ${data.jobTitle ? `<div style="
+        font-size: ${18 * ls}px;
+        font-weight: 600;
+        color: rgba(255,255,255,0.45);
+        direction: rtl;
+        margin-top: ${4 * ls}px;
+      ">${escapeHtml(data.jobTitle)}</div>` : ''}
 
       ${landscapeBenefits}
       ${landscapeSpotlight}

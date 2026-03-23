@@ -16,9 +16,9 @@ const qaJobData: PosterData = {
     isConfidential: false,
   },
   title: {
-    he: "בודק/ת תוכנה ידני/ת בכיר/ה",
-    en: "Senior Manual QA Engineer",
+    he: "מוכנים לצעד הבא בקריירה?",
   },
+  jobTitle: "בודק/ת תוכנה ידני/ת בכיר/ה",
   spotlight: { text: "₪18,000-25,000 לחודש", type: "salary" },
   details: [
     { label: "ניסיון", value: "ניסיון של 5 שנים לפחות בבדיקות תוכנה" },

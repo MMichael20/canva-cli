@@ -159,6 +159,14 @@ export function renderSpotlight(data: PosterData, width: number, height: number)
       direction: rtl;
       text-align: center;
     ">${escapeHtml(data.title.he)}</div>
+    ${data.jobTitle ? `<div style="
+      font-size: ${20 * scale}px;
+      font-weight: 600;
+      color: ${hexToRgba(darkText, 0.5)};
+      direction: rtl;
+      text-align: center;
+      margin-top: ${6 * scale}px;
+    ">${escapeHtml(data.jobTitle)}</div>` : ''}
   `;
 
   // === SPOTLIGHT (salary / tagline / benefit banner) ===
