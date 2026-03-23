@@ -1,5 +1,5 @@
 // === Template System ===
-export type TemplateCategory = "standard" | "overlay" | "split" | "neon-dark";
+export type TemplateCategory = "standard" | "overlay" | "split" | "neon-dark" | "spotlight";
 export type TemplateId = TemplateCategory;
 export type FontStackId = "modern" | "bold";
 
@@ -31,7 +31,10 @@ export interface PosterData {
     he: string;
     en?: string;
   };
-  subtitle?: string;
+  spotlight: {
+    text: string;
+    type: "salary" | "tagline" | "benefit";
+  };
   details: PosterDetail[];
   benefits?: string[];
   salary?: {
@@ -75,6 +78,7 @@ export const CATEGORY_META: Record<TemplateCategory, { label: string; labelHe: s
   overlay:   { label: "Overlay",    labelHe: "שכבת תמונה" },
   split:       { label: "Split",      labelHe: "מפוצל" },
   "neon-dark":  { label: "Neon Dark",  labelHe: "ניאון כהה" },
+  spotlight:    { label: "Spotlight", labelHe: "זרקור" },
 };
 
 export const CATEGORY_THEMES: Record<TemplateCategory, {
@@ -84,6 +88,7 @@ export const CATEGORY_THEMES: Record<TemplateCategory, {
   overlay:   { primary: "#3A6BC5", secondary: "#A8C4E0", bgColor: "#FFFFFF", textColor: "#1B3A7A", fontStack: "modern" },
   split:       { primary: "#1E3A5F", secondary: "#4A90D9", bgColor: "#1E3A5F", textColor: "#FFFFFF", fontStack: "modern" },
   "neon-dark":  { primary: "#0A0A1A", secondary: "#00E5FF", bgColor: "#0A0A1A", textColor: "#FFFFFF", fontStack: "bold" },
+  spotlight:    { primary: "#6C5CE7", secondary: "#A29BFE", bgColor: "#F8F8FC", textColor: "#1A1A2E", fontStack: "modern" },
 };
 
 export const CATEGORY_ADJACENCY: Record<TemplateCategory, TemplateCategory[]> = {
@@ -91,5 +96,6 @@ export const CATEGORY_ADJACENCY: Record<TemplateCategory, TemplateCategory[]> = 
   overlay:     ["standard", "split"],
   split:       ["standard", "overlay"],
   "neon-dark": ["overlay", "split"],
+  spotlight:   ["standard", "overlay"],
 };
 

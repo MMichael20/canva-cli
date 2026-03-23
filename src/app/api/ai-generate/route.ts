@@ -13,7 +13,7 @@ import {
 import { renderThumbnails } from "@/lib/renderer";
 
 const AIOutputSchema = z.object({
-  category: z.enum(["standard", "overlay", "split", "neon-dark"])
+  category: z.enum(["standard", "overlay", "split", "neon-dark", "spotlight"])
     .describe("Best-fit template category for this role"),
   companyName: z.string().nullable()
     .describe("Company name from the job description, or null if not mentioned / confidential"),
@@ -21,8 +21,10 @@ const AIOutputSchema = z.object({
     he: z.string().describe("Hebrew headline: job title (max 4 words) if company known, or creative industry+role headline (6-12 words) if company is null"),
     en: z.string().nullable().describe("English job title for tech roles (e.g. 'QA Engineer'), null for non-tech"),
   }),
-  subtitle: z.string().nullable()
-    .describe("Punchy emotional tagline, max 25 Hebrew characters including spaces, or null"),
+  spotlight: z.object({
+    text: z.string().describe("The single most compelling hook for this job — salary if impressive, otherwise a punchy Hebrew tagline or standout benefit"),
+    type: z.enum(["salary", "tagline", "benefit"]).describe("What kind of hook this is, so templates can style it appropriately"),
+  }),
   details: z.array(z.object({
     label: z.string().describe("Short Hebrew category label, max 3 words (internal metadata, not displayed)"),
     value: z.string().describe("Self-explanatory descriptive phrase, max ~40 Hebrew chars, must make sense without label"),
@@ -86,17 +88,25 @@ When companyName is null — a creative headline merging industry + role, 6-12 w
 English job title for tech roles only (e.g. "QA Engineer", "DevOps Engineer", "Full Stack Developer").
 Set to null for non-tech roles (e.g. accountant, warehouse worker, sales).
 
-── subtitle (string | null) ──
-A punchy emotional tagline. HARD LIMIT: max 25 Hebrew characters including spaces. Typically 3-5 words. The template renders this with white-space: nowrap — anything over 25 characters gets clipped and looks broken.
+── spotlight (object) ──
+The single biggest visual element on the poster — the hook that makes someone stop scrolling. Contains:
+  • text (string): The display text. Max 30 Hebrew characters including spaces.
+  • type ("salary" | "tagline" | "benefit"): What kind of hook this is.
 
-GOOD: "הובילו את המוצר הבא" (20 chars, action-driven)
-GOOD: "טכנולוגיה שמשנה חיים" (20 chars, impact)
-GOOD: "צוות מוצר רב-תחומי" (18 chars, specific)
-BAD: "הצטרפו לצוות בדיקות תוכנה מקצועי ומגוון" (41 chars — will clip)
-BAD: "משרה מלאה באזור המרכז" (logistic detail, not a hook)
-BAD: "הצטרפו אלינו" (generic filler, says nothing)
+DECISION LOGIC — pick the strongest hook:
+1. If salary is a specific impressive range (e.g. "₪18,000-25,000 לחודש") → use it as text, type: "salary"
+2. If salary is vague ("לפי ניסיון", "תחרותי", "שכר גבוה") or missing → write a punchy Hebrew tagline, type: "tagline"
+3. If a single benefit is more compelling than the salary (e.g. "עבודה מהבית 5 ימים") → use it, type: "benefit"
 
-Reference something specific from the description — a domain, methodology, team structure, or impact. Set to null only if nothing fits.
+GOOD spotlight examples:
+  type "salary": text "₪18,000-25,000 לחודש"
+  type "tagline": text "בואו לעצב את העתיד"
+  type "tagline": text "הובילו את המוצר הבא"
+  type "benefit": text "עבודה מהבית מלאה"
+BAD:
+  "הצטרפו אלינו" — generic filler
+  "משרה מלאה באזור המרכז" — logistic detail, not a hook
+  "לפי ניסיון" — not compelling, write a tagline instead
 
 ── details (array of 3-5 objects) ──
 Each object has:
@@ -267,7 +277,7 @@ export async function POST(request: NextRequest) {
         he: parsed.title.he,
         en: parsed.title.en || undefined,
       },
-      subtitle: parsed.subtitle || undefined,
+      spotlight: parsed.spotlight,
       details: parsed.details,
       benefits: parsed.benefits || undefined,
       salary: parsed.salaryDisplay ? { display: parsed.salaryDisplay } : undefined,

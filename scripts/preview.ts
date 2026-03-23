@@ -2,6 +2,7 @@ import { renderStandard } from "../src/lib/templates/standard";
 import { renderOverlay } from "../src/lib/templates/overlay";
 import { renderSplit } from "../src/lib/templates/split";
 import { renderNeonDark } from "../src/lib/templates/neon-dark";
+import { renderSpotlight } from "../src/lib/templates/spotlight";
 import { PosterData, FORMAT_DIMENSIONS, FormatId, CATEGORY_THEMES } from "../src/lib/types";
 import puppeteer from "puppeteer";
 import fs from "fs";
@@ -18,7 +19,7 @@ const qaJobData: PosterData = {
     he: "בודק/ת תוכנה ידני/ת בכיר/ה",
     en: "Senior Manual QA Engineer",
   },
-  subtitle: "הובילו את האיכות קדימה",
+  spotlight: { text: "₪18,000-25,000 לחודש", type: "salary" },
   details: [
     { label: "ניסיון", value: "ניסיון של 5 שנים לפחות בבדיקות תוכנה" },
     { label: "סביבת עבודה", value: "בדיקות ידניות למערכות Web ו-Mobile" },
@@ -36,7 +37,11 @@ const qaJobData: PosterData = {
 };
 
 const TEMPLATES = [
+  { name: "standard", render: renderStandard, theme: CATEGORY_THEMES.standard },
+  { name: "overlay", render: renderOverlay, theme: CATEGORY_THEMES.overlay },
+  { name: "split", render: renderSplit, theme: CATEGORY_THEMES.split },
   { name: "neon-dark", render: renderNeonDark, theme: CATEGORY_THEMES["neon-dark"] },
+  { name: "spotlight", render: renderSpotlight, theme: CATEGORY_THEMES.spotlight },
 ] as const;
 
 const FORMATS: FormatId[] = [

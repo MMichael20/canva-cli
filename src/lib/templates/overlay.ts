@@ -22,7 +22,7 @@ export function renderOverlay(data: PosterData, width: number, height: number): 
     + (data.salary?.display ? 30 : 0)
     + (data.benefits?.length ? 30 : 0)
     + (data.badge ? 60 : 0)
-    + (data.subtitle ? 50 : 0);
+    + (data.spotlight ? 60 : 0);
   const scale = Math.min(baseScale * heightBoost, usableH / contentRef);
 
   const primary = data.theme.primary;
@@ -75,24 +75,45 @@ export function renderOverlay(data: PosterData, width: number, height: number): 
     ">${escapeHtml(data.badge.text)}</div>
   ` : "";
 
-  const subtitleBanner = data.subtitle ? `
-    <div style="
-      display: inline-block;
-      background: linear-gradient(135deg, ${hexToRgba(navy, 0.92)}, ${hexToRgba(mediumBlue, 0.85)});
-      color: white;
-      padding: ${14*scale*sp}px ${30*scale*sp}px;
-      font-size: ${28*scale}px;
-      font-weight: 700;
-      transform: rotate(1deg);
-      direction: rtl;
-      line-height: 1.5;
-      box-shadow: 0 ${4*scale}px ${16*scale}px rgba(0,0,0,0.2);
-      max-width: 90%;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    ">${escapeHtml(data.subtitle)}</div>
-  ` : "";
+  // === SPOTLIGHT HERO ===
+  const spotlightHtml = (() => {
+    if (!data.spotlight) return "";
+    const st = data.spotlight;
+    let bg = "";
+    let fg = "";
+    let icon = "";
+    if (st.type === "salary") {
+      bg = "linear-gradient(135deg, #F59E0B, #D97706)";
+      fg = "#1E1E1E";
+      icon = `<i class="fa-solid fa-shekel-sign" style="margin-left:${10*scale}px;font-size:${30*scale}px;"></i>`;
+    } else if (st.type === "tagline") {
+      bg = "linear-gradient(135deg, #FFFFFF, #F1F5F9)";
+      fg = navy;
+      icon = "";
+    } else if (st.type === "benefit") {
+      bg = "linear-gradient(135deg, #059669, #047857)";
+      fg = "#FFFFFF";
+      icon = `<i class="fa-solid fa-star" style="margin-left:${10*scale}px;font-size:${28*scale}px;"></i>`;
+    }
+    return `
+      <div style="
+        background: ${bg};
+        color: ${fg};
+        padding: ${18*scale*sp}px ${36*scale*sp}px;
+        font-size: ${36*scale}px;
+        font-weight: 800;
+        text-align: center;
+        direction: rtl;
+        line-height: 1.3;
+        box-shadow: 0 ${6*scale}px ${22*scale}px rgba(0,0,0,0.2);
+        margin-top: ${12*scale*sp}px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: ${8*scale}px;
+      ">${icon}<span>${escapeHtml(st.text)}</span></div>
+    `;
+  })();
 
   const companyBanner = data.company.isConfidential ? "" : `
     <div style="
@@ -130,7 +151,7 @@ export function renderOverlay(data: PosterData, width: number, height: number): 
 
   // === SUB-HEADLINE BAR ===
   const subParts: string[] = [];
-  if (data.salary?.display) subParts.push(escapeHtml(data.salary.display));
+  if (data.salary?.display && data.spotlight?.type !== "salary") subParts.push(escapeHtml(data.salary.display));
   if (data.benefits && data.benefits.length > 0) {
     data.benefits.forEach(b => subParts.push(escapeHtml(b)));
   }
@@ -250,9 +271,9 @@ export function renderOverlay(data: PosterData, width: number, height: number): 
     <!-- TOP: Banners -->
     <div style="text-align: right;">
       ${badgeHtml}
-      ${subtitleBanner ? `<div style="margin-bottom:${16*scale*sp}px;">${subtitleBanner}</div>` : ""}
       ${companyBanner}
       ${titleBanner}
+      ${spotlightHtml}
       ${subHeadline}
     </div>
 

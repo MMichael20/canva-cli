@@ -19,7 +19,8 @@ export function renderSplit(data: PosterData, width: number, height: number): st
 
   // Scale
   const contentItems = 200 + data.details.length * 50
-    + (data.salary?.display ? 45 : 0)
+    + 70 /* spotlight hero */
+    + (data.salary?.display && data.spotlight.type !== "salary" ? 45 : 0)
     + (data.benefits?.length ? 45 : 0);
   const scale = Math.min(baseScale, (splitH / contentItems) * 0.85);
   // Taller formats get boosted scale so content fills the space
@@ -83,16 +84,6 @@ export function renderSplit(data: PosterData, width: number, height: number): st
         text-align: center;
         direction: rtl;
       ">${escapeHtml(data.title.he)}</div>
-
-      ${data.subtitle ? `
-        <div style="
-          margin-top: ${8 * s}px;
-          font-size: ${20 * s}px;
-          color: ${accent};
-          font-weight: 600;
-          direction: rtl;
-        ">${escapeHtml(data.subtitle)}</div>
-      ` : ""}
 
       <!-- Company name in header — visible -->
       <div style="
@@ -192,8 +183,39 @@ export function renderSplit(data: PosterData, width: number, height: number): st
     </div>
   `).join("");
 
-  // Salary
-  const salaryHtml = data.salary?.display
+  // Spotlight hero
+  const spotlightBg =
+    data.spotlight.type === "salary"  ? "linear-gradient(135deg, #F59E0B, #D97706)" :
+    data.spotlight.type === "benefit" ? "#059669" :
+    /* tagline */                       accent;
+  const spotlightColor =
+    data.spotlight.type === "salary" ? "#1A2A3A" : "#FFFFFF";
+  const spotlightIcon =
+    data.spotlight.type === "salary"  ? `<i class="fa-solid fa-shekel-sign" style="margin-left: ${8 * s}px; font-size: ${22 * s}px;"></i>` :
+    data.spotlight.type === "benefit" ? `<i class="fa-solid fa-star" style="margin-left: ${8 * s}px; font-size: ${22 * s}px;"></i>` :
+    "";
+  const spotlightHtml = `
+    <div style="
+      background: ${spotlightBg};
+      border-radius: ${12 * s}px;
+      padding: ${16 * s}px ${20 * s}px;
+      text-align: center;
+      margin-bottom: ${10 * s}px;
+      box-shadow: 0 ${3 * s}px ${12 * s}px rgba(0,0,0,0.2);
+    ">
+      <span style="
+        font-size: ${30 * s}px;
+        font-weight: 800;
+        color: ${spotlightColor};
+        direction: rtl;
+        display: block;
+        line-height: 1.2;
+      ">${spotlightIcon}${escapeHtml(data.spotlight.text)}</span>
+    </div>
+  `;
+
+  // Salary — only shown when spotlight is NOT already salary-type
+  const salaryHtml = (data.salary?.display && data.spotlight.type !== "salary")
     ? `<div style="
         background: rgba(255,255,255,0.88);
         border-radius: ${8 * s}px;
@@ -248,6 +270,7 @@ export function renderSplit(data: PosterData, width: number, height: number): st
     ">
       <div>
         ${benefitsHtml}
+        ${spotlightHtml}
         ${detailBars}
         ${salaryHtml}
       </div>

@@ -12,9 +12,10 @@ export function renderStandard(data: PosterData, width: number, height: number):
 
   // Format-aware scale: constrained by content area to prevent overflow
   const contentAreaH = isLandscape ? height : height * (1 - photoPercent / 100);
-  // Content-aware estimate: base (title+CTA+footer+padding) + per-detail + extras
-  const contentRef = 350 + data.details.length * 70
-    + (data.salary?.display ? 75 : 0)
+  // Content-aware estimate: base (title+spotlight+CTA+footer+padding) + per-detail + extras
+  const contentRef = 350 + 120
+    + data.details.length * 70
+    + (data.salary?.display && data.spotlight.type !== "salary" ? 75 : 0)
     + (data.benefits?.length ? 50 : 0);
   const scale = Math.min(wScale, (contentAreaH / contentRef) * 0.92);
 
@@ -97,20 +98,6 @@ export function renderStandard(data: PosterData, width: number, height: number):
           </div>
         ` : ""}
 
-        <!-- Subtitle value prop — sharp corners, slightly transparent -->
-        ${data.subtitle ? `
-          <div style="
-            background: ${hexToRgba(primary, 0.82)};
-            color: white;
-            padding: ${14 * scale}px ${26 * scale}px;
-            font-size: ${26 * scale}px;
-            font-weight: 700;
-            line-height: 1.5;
-            display: inline-block;
-            box-shadow: 0 ${4 * scale}px ${12 * scale}px rgba(0,0,0,0.15);
-            direction: rtl;
-          ">${escapeHtml(data.subtitle)}</div>
-        ` : ""}
       </div>
 
       ${!data.company.isConfidential ? `<!-- Company name at bottom of photo -->
@@ -170,8 +157,42 @@ export function renderStandard(data: PosterData, width: number, height: number):
     </div>
   `).join("");
 
-  // === SALARY (amber accent — eye-catching, same pill style) ===
-  const salaryHtml = data.salary?.display
+  // === SPOTLIGHT (biggest visual element — type-dependent styling) ===
+  const spotlightBg = data.spotlight.type === "salary"
+    ? "#F59E0B"
+    : data.spotlight.type === "benefit"
+      ? "#059669"
+      : primary;
+  const spotlightColor = data.spotlight.type === "tagline" ? "white" : "#1A2A3A";
+  const spotlightIcon = data.spotlight.type === "salary"
+    ? `<i class="fa-solid fa-shekel-sign" style="font-size: ${36 * scale}px; color: ${spotlightColor}; margin-left: ${12 * scale}px;"></i>`
+    : data.spotlight.type === "benefit"
+      ? `<i class="fa-solid fa-star" style="font-size: ${36 * scale}px; color: ${spotlightColor}; margin-left: ${12 * scale}px;"></i>`
+      : "";
+  const spotlightHtml = `
+    <div style="
+      background: ${spotlightBg};
+      border-radius: ${16 * scale}px;
+      padding: ${28 * scale}px ${32 * scale}px;
+      text-align: center;
+      margin-bottom: ${16 * scale}px;
+      margin-top: ${4 * scale}px;
+      box-shadow: 0 ${6 * scale}px ${24 * scale}px rgba(0,0,0,0.2);
+    ">
+      ${spotlightIcon}
+      <span style="
+        font-size: ${44 * scale}px;
+        font-weight: 900;
+        color: ${spotlightColor};
+        line-height: 1.2;
+        display: block;
+        margin-top: ${spotlightIcon ? `${8 * scale}px` : "0"};
+      ">${escapeHtml(data.spotlight.text)}</span>
+    </div>
+  `;
+
+  // === SALARY (secondary, only if spotlight is NOT salary to avoid duplication) ===
+  const salaryHtml = (data.salary?.display && data.spotlight.type !== "salary")
     ? `<div style="
         background: #F59E0B;
         border-radius: ${12 * scale}px;
@@ -284,12 +305,15 @@ export function renderStandard(data: PosterData, width: number, height: number):
           ">${escapeHtml(data.title.he)}</div>
         </div>
 
+        <!-- Spotlight -->
+        ${spotlightHtml}
+
         <!-- Detail bars -->
         <div style="margin-bottom: ${8 * scale}px;">
           ${detailBars}
         </div>
 
-        <!-- Salary -->
+        <!-- Salary (secondary) -->
         ${salaryHtml}
 
         <!-- Benefits -->

@@ -210,18 +210,6 @@ export function renderNeonDark(data: PosterData, width: number, height: number):
     ">${escapeHtml(data.title.he)}</div>
   `;
 
-  // === SUBTITLE ===
-  const subtitleHtml = data.subtitle ? `
-    <div style="
-      font-size: ${19 * scale}px;
-      font-weight: 600;
-      color: ${hexToRgba(accentWarm, 0.85)};
-      margin-bottom: ${18 * scale}px;
-      direction: rtl;
-      text-align: ${isLandscape ? 'right' : 'center'};
-    ">${escapeHtml(data.subtitle)}</div>
-  ` : "";
-
   // === BENEFITS (refined cards) ===
   const benefitsHtml = (data.benefits && data.benefits.length > 0) ? `
     <div style="
@@ -250,36 +238,52 @@ export function renderNeonDark(data: PosterData, width: number, height: number):
     </div>
   ` : "";
 
-  // === SALARY (HERO — the star of the poster) ===
+  // === SPOTLIGHT (HERO — the star of the poster) ===
   const salaryFontSize = isLandscape ? 44 : isSquare ? 48 : 64;
   const salaryIconSize = isLandscape ? 36 : isSquare ? 38 : 50;
   const salaryPad = isSquare ? 20 : 32;
-  const salaryHtml = data.salary?.display ? `
+
+  const spotlightHtml = data.spotlight ? (() => {
+    const spotType = data.spotlight.type;
+    const spotColor = spotType === "salary" ? "#D4A053"
+      : spotType === "benefit" ? accentWarm
+      : accent;
+    const spotIcon = spotType === "salary"
+      ? `<i class="fa-solid fa-shekel-sign" style="
+          font-size: ${salaryIconSize * scale}px;
+          color: ${spotColor};
+          text-shadow: 0 0 ${12 * scale}px ${hexToRgba(spotColor, 0.35)};
+        "></i>`
+      : spotType === "benefit"
+      ? `<i class="fa-solid fa-star" style="
+          font-size: ${salaryIconSize * scale}px;
+          color: ${spotColor};
+          text-shadow: 0 0 ${12 * scale}px ${hexToRgba(spotColor, 0.35)};
+        "></i>`
+      : "";
+    return `
     <div style="
-      background: linear-gradient(135deg, ${hexToRgba('#D4A053', 0.2)}, ${hexToRgba('#D4A053', 0.06)});
-      border: ${3 * scale}px solid ${hexToRgba('#D4A053', 0.55)};
+      background: linear-gradient(135deg, ${hexToRgba(spotColor, 0.2)}, ${hexToRgba(spotColor, 0.06)});
+      border: ${3 * scale}px solid ${hexToRgba(spotColor, 0.55)};
       border-radius: ${18 * scale}px;
       padding: ${salaryPad * scale}px ${32 * scale}px;
       text-align: center;
       margin-bottom: ${18 * scale}px;
-      box-shadow: 0 0 ${25 * scale}px ${hexToRgba('#D4A053', 0.25)},
-                  0 0 ${50 * scale}px ${hexToRgba('#D4A053', 0.1)};
+      box-shadow: 0 0 ${25 * scale}px ${hexToRgba(spotColor, 0.25)},
+                  0 0 ${50 * scale}px ${hexToRgba(spotColor, 0.1)};
     ">
       <div style="display: flex; align-items: center; justify-content: center; gap: ${14 * scale}px;">
-        <i class="fa-solid fa-shekel-sign" style="
-          font-size: ${salaryIconSize * scale}px;
-          color: #D4A053;
-          text-shadow: 0 0 ${12 * scale}px ${hexToRgba('#D4A053', 0.35)};
-        "></i>
+        ${spotIcon}
         <span style="
           font-size: ${salaryFontSize * scale}px;
           font-weight: 900;
-          color: #D4A053;
-          text-shadow: 0 0 ${20 * scale}px ${hexToRgba('#D4A053', 0.35)};
-        ">${escapeHtml(data.salary.display)}</span>
+          color: ${spotColor};
+          text-shadow: 0 0 ${20 * scale}px ${hexToRgba(spotColor, 0.35)};
+        ">${escapeHtml(data.spotlight.text)}</span>
       </div>
     </div>
-  ` : "";
+  `;
+  })() : "";
 
   // === DETAIL CIRCLES (2 top row, 3 bottom row for mobile) ===
   const maxDetails = isSquare ? 3 : Math.min(data.details.length, 5);
@@ -476,23 +480,34 @@ export function renderNeonDark(data: PosterData, width: number, height: number):
       </div>
     ` : "";
 
-    const landscapeSalary = data.salary?.display ? `
+    const landscapeSpotlight = data.spotlight ? (() => {
+      const spotType = data.spotlight.type;
+      const spotColor = spotType === "salary" ? "#D4A053"
+        : spotType === "benefit" ? accentWarm
+        : accent;
+      const spotIcon = spotType === "salary"
+        ? `<i class="fa-solid fa-shekel-sign" style="font-size: ${36 * ls}px; color: ${spotColor}; text-shadow: 0 0 ${10 * ls}px ${hexToRgba(spotColor, 0.3)};"></i>`
+        : spotType === "benefit"
+        ? `<i class="fa-solid fa-star" style="font-size: ${36 * ls}px; color: ${spotColor}; text-shadow: 0 0 ${10 * ls}px ${hexToRgba(spotColor, 0.3)};"></i>`
+        : "";
+      return `
       <div style="
-        background: linear-gradient(135deg, ${hexToRgba('#D4A053', 0.18)}, ${hexToRgba('#D4A053', 0.05)});
-        border: ${2.5 * ls}px solid ${hexToRgba('#D4A053', 0.5)};
+        background: linear-gradient(135deg, ${hexToRgba(spotColor, 0.18)}, ${hexToRgba(spotColor, 0.05)});
+        border: ${2.5 * ls}px solid ${hexToRgba(spotColor, 0.5)};
         border-radius: ${12 * ls}px;
         padding: ${14 * ls}px ${24 * ls}px;
         text-align: center;
         margin-bottom: ${10 * ls}px;
-        box-shadow: 0 0 ${20 * ls}px ${hexToRgba('#D4A053', 0.2)},
-                    0 0 ${40 * ls}px ${hexToRgba('#D4A053', 0.08)};
+        box-shadow: 0 0 ${20 * ls}px ${hexToRgba(spotColor, 0.2)},
+                    0 0 ${40 * ls}px ${hexToRgba(spotColor, 0.08)};
       ">
         <div style="display: flex; align-items: center; justify-content: center; gap: ${10 * ls}px;">
-          <i class="fa-solid fa-shekel-sign" style="font-size: ${36 * ls}px; color: #D4A053; text-shadow: 0 0 ${10 * ls}px ${hexToRgba('#D4A053', 0.3)};"></i>
-          <span style="font-size: ${44 * ls}px; font-weight: 900; color: #D4A053; text-shadow: 0 0 ${14 * ls}px ${hexToRgba('#D4A053', 0.3)};">${escapeHtml(data.salary.display)}</span>
+          ${spotIcon}
+          <span style="font-size: ${44 * ls}px; font-weight: 900; color: ${spotColor}; text-shadow: 0 0 ${14 * ls}px ${hexToRgba(spotColor, 0.3)};">${escapeHtml(data.spotlight.text)}</span>
         </div>
       </div>
-    ` : "";
+    `;
+    })() : "";
 
     return `<!DOCTYPE html>
 <html lang="he" dir="rtl">
@@ -533,9 +548,8 @@ export function renderNeonDark(data: PosterData, width: number, height: number):
         direction: rtl;
       ">${escapeHtml(data.title.he)}</div>
 
-      ${subtitleHtml}
       ${landscapeBenefits}
-      ${landscapeSalary}
+      ${landscapeSpotlight}
 
       <div style="
         background: linear-gradient(135deg, ${accent}, ${adjustBrightness(accent, -30)});
@@ -593,9 +607,8 @@ export function renderNeonDark(data: PosterData, width: number, height: number):
           ${companyHtml}
         </div>
         ${titleHtml}
-        ${subtitleHtml}
         ${benefitsHtml}
-        ${salaryHtml}
+        ${spotlightHtml}
         ${detailsSection}
       </div>
 
