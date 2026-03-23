@@ -282,14 +282,6 @@ export function renderStandard(data: PosterData, width: number, height: number):
             color: white;
             line-height: 1.15;
           ">${escapeHtml(data.title.he)}</div>
-          ${data.title.en ? `
-            <div style="
-              font-size: ${20 * scale}px;
-              color: rgba(255,255,255,0.6);
-              direction: ltr;
-              margin-top: ${10 * scale}px;
-            ">${escapeHtml(data.title.en)}</div>
-          ` : ""}
         </div>
 
         <!-- Detail bars -->

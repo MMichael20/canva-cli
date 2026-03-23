@@ -84,15 +84,6 @@ export function renderSplit(data: PosterData, width: number, height: number): st
         direction: rtl;
       ">${escapeHtml(data.title.he)}</div>
 
-      ${data.title.en ? `
-        <div style="
-          font-size: ${14 * s}px;
-          color: rgba(255,255,255,0.5);
-          direction: ltr;
-          margin-top: ${4 * s}px;
-        ">${escapeHtml(data.title.en)}</div>
-      ` : ""}
-
       ${data.subtitle ? `
         <div style="
           margin-top: ${8 * s}px;
